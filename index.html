@@ -1,0 +1,2205 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dossiercompleet.nl — Slagingspercentage</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300..800&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  font-family: 'Geist', system-ui, -apple-system, sans-serif;
+  background: #F4F1EA;
+  color: #0A0D0B;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+/* PROGRESS BAR */
+.progress-bar { position: sticky; top: 0; z-index: 60; height: 3px; width: 100%; background: rgba(12, 59, 42, 0.08); }
+.progress-bar-fill { height: 100%; background: linear-gradient(90deg, #0C3B2A 0%, #C4F54E 100%); width: 0%; transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+
+/* HEADER */
+.header { position: sticky; top: 3px; z-index: 50; background: rgba(244, 241, 234, 0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(10,13,11,0.08); }
+.header-inner { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-logo { width: 32px; height: 32px; border-radius: 8px; background: #0C3B2A; display: flex; align-items: center; justify-content: center; }
+.brand-dot { width: 12px; height: 12px; border-radius: 3px; background: #C4F54E; }
+.brand-name { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; line-height: 1; }
+.brand-name span { color: #0C3B2A; }
+.brand-sub { font-size: 10px; color: #707672; margin-top: 2px; letter-spacing: 0.06em; }
+
+/* PCT WIDGET */
+.pct-widget { display: flex; align-items: center; gap: 14px; position: relative; }
+.pct-label-wrap { text-align: right; display: none; }
+@media (min-width: 640px) { .pct-label-wrap { display: block; } }
+.pct-kicker { font-size: 10px; color: #707672; letter-spacing: 0.16em; text-transform: uppercase; }
+.pct-msg { font-size: 11px; color: #4A4F4B; margin-top: 3px; }
+.pct-progress { font-size: 10px; color: #707672; margin-top: 4px; font-family: 'Geist Mono', monospace; }
+.pct-ring-wrap { position: relative; width: 64px; height: 64px; }
+.pct-ring-wrap svg { display: block; transform: rotate(-90deg); transform-origin: center; }
+.ring-bg { fill: none; stroke: rgba(12,59,42,0.1); stroke-width: 5; }
+.ring-fg { fill: none; stroke: #0C3B2A; stroke-width: 5; stroke-linecap: round; stroke-dasharray: 163.4; stroke-dashoffset: 127.5; transition: stroke-dashoffset 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
+.pct-num { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
+.pct-num .num { font-family: 'Geist Mono', monospace; font-size: 19px; font-weight: 600; color: #0C3B2A; font-feature-settings: 'tnum'; }
+.pct-suffix { font-size: 8px; color: #707672; font-family: 'Geist Mono', monospace; margin-top: 2px; }
+.pct-delta { position: absolute; top: -6px; right: -12px; background: #C4F54E; color: #0C3B2A; font-family: 'Geist Mono', monospace; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 100px; opacity: 0; pointer-events: none; }
+.pct-delta.show { animation: floatUp 1.5s ease-out forwards; }
+.pct-ring-wrap.bump svg { animation: pulse 0.5s ease-out; }
+@keyframes pulse { 0% { transform: rotate(-90deg) scale(1); } 50% { transform: rotate(-90deg) scale(1.1); } 100% { transform: rotate(-90deg) scale(1); } }
+@keyframes floatUp { 0% { opacity: 0; transform: translateY(8px); } 20% { opacity: 1; transform: translateY(0); } 80% { opacity: 1; transform: translateY(-24px); } 100% { opacity: 0; transform: translateY(-36px); } }
+
+/* FLOATING BADGE */
+.float-badge { position: fixed; bottom: 80px; right: 20px; z-index: 70; display: flex; align-items: center; gap: 10px; background: #0C3B2A; color: #C4F54E; padding: 10px 16px 10px 12px; border-radius: 100px; box-shadow: 0 8px 32px rgba(12, 59, 42, 0.25), 0 2px 8px rgba(12, 59, 42, 0.15); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, opacity 0.4s; font-family: inherit; border: none; opacity: 0; transform: translateY(20px); }
+.float-badge.visible { opacity: 1; transform: translateY(0); }
+.float-badge:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(12, 59, 42, 0.3), 0 2px 8px rgba(12, 59, 42, 0.2); }
+.float-badge-ring { position: relative; width: 36px; height: 36px; }
+.float-badge-ring svg { display: block; transform: rotate(-90deg); }
+.float-badge-ring .bg { fill: none; stroke: rgba(196, 245, 78, 0.2); stroke-width: 3; }
+.float-badge-ring .fg { fill: none; stroke: #C4F54E; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 100.5; stroke-dashoffset: 78; transition: stroke-dashoffset 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
+.float-badge-num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 600; color: #C4F54E; }
+.float-badge-text { line-height: 1.1; padding-right: 4px; }
+.float-badge-text .label { font-size: 9px; opacity: 0.7; letter-spacing: 0.08em; text-transform: uppercase; }
+.float-badge-text .value { font-size: 15px; font-weight: 600; margin-top: 2px; font-family: 'Geist Mono', monospace; }
+
+/* HERO */
+.hero { padding: 48px 24px 32px; }
+.hero h1 { font-size: 36px; line-height: 0.98; font-weight: 500; letter-spacing: -0.02em; max-width: 900px; }
+@media (min-width: 768px) { .hero h1 { font-size: 60px; } }
+.hero h1 em { font-family: 'Instrument Serif', serif; font-style: italic; font-weight: 400; color: #0C3B2A; }
+.hero p { color: #4A4F4B; font-size: 16px; margin-top: 22px; max-width: 640px; line-height: 1.55; }
+@media (min-width: 768px) { .hero p { font-size: 17px; } }
+
+/* SECTIONS */
+.sections { padding: 0 24px 160px; }
+.section { border-radius: 16px; background: rgba(255,255,255,0.5); border: 1px solid rgba(10,13,11,0.08); overflow: hidden; transition: all 0.3s; margin-bottom: 12px; }
+.section.open { background: #FFFFFF; border-color: rgba(12,59,42,0.15); box-shadow: 0 1px 2px rgba(10,13,11,0.04), 0 8px 32px rgba(10,13,11,0.06); }
+.section.hidden { display: none; }
+.section-head { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; text-align: left; background: none; border: none; cursor: pointer; font-family: inherit; color: inherit; transition: background 0.2s; }
+@media (min-width: 640px) { .section-head { padding: 24px 28px; } }
+.section-head:hover { background: rgba(0,0,0,0.02); }
+.section-head-left { display: flex; align-items: center; gap: 16px; min-width: 0; }
+@media (min-width: 640px) { .section-head-left { gap: 20px; } }
+.section-badge { width: 40px; height: 40px; border-radius: 50%; background: rgba(12,59,42,0.06); color: #0C3B2A; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; transition: all 0.3s; flex-shrink: 0; }
+.section.open .section-badge { background: #0C3B2A; color: #C4F54E; }
+.section.done .section-badge { background: #C4F54E; color: #0C3B2A; }
+.section.done .section-badge::after { content: "✓"; }
+.section.done .section-badge .badge-num { display: none; }
+.section-title { font-size: 16px; font-weight: 500; line-height: 1.2; }
+@media (min-width: 640px) { .section-title { font-size: 17px; } }
+.section-sub { font-size: 12px; color: #707672; margin-top: 2px; }
+@media (min-width: 640px) { .section-sub { font-size: 13px; } }
+.section-head-right { display: flex; align-items: center; gap: 10px; color: #0A0D0B; flex-shrink: 0; }
+.section-status { font-size: 11px; font-weight: 500; color: #0C3B2A; background: rgba(196, 245, 78, 0.4); padding: 4px 10px; border-radius: 100px; display: none; }
+.section.done:not(.open) .section-status { display: inline; }
+.section-chevron { transition: transform 0.3s; flex-shrink: 0; }
+.section.open .section-chevron { transform: rotate(180deg); }
+.section-body { display: none; padding: 4px 24px 24px; }
+@media (min-width: 640px) { .section-body { padding: 8px 28px 28px; } }
+.section.open .section-body { display: block; animation: slideDown 0.3s ease-out; }
+@keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* GRID & FIELDS */
+.grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+@media (min-width: 720px) { .grid.grid-2 { grid-template-columns: 1fr 1fr; } .grid.grid-3 { grid-template-columns: 1fr 1fr 1fr; } .grid.grid-postcode { grid-template-columns: 2fr 1fr 1fr; } }
+.col-2 { grid-column: 1 / -1; }
+
+.field { position: relative; }
+.field label { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 500; color: #4A4F4B; margin-bottom: 6px; letter-spacing: 0.02em; }
+.field-bonus { font-family: 'Geist Mono', monospace; font-size: 10px; font-weight: 600; color: #0C3B2A; background: rgba(196, 245, 78, 0.4); padding: 2px 7px; border-radius: 100px; opacity: 1; transition: all 0.3s; }
+.field-bonus.optional { background: rgba(10, 13, 11, 0.06); color: #707672; font-weight: 500; }
+.field-bonus.filled { background: rgba(12, 59, 42, 0.08); color: #0C3B2A; }
+.field-input { position: relative; }
+.field-prefix { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #9CA39E; font-size: 15px; pointer-events: none; }
+.field input, .field select { width: 100%; background: transparent; border: 1px solid rgba(10,13,11,0.15); border-radius: 8px; padding: 12px 16px; font-size: 15px; font-family: inherit; color: inherit; transition: border-color 0.2s, background 0.2s; }
+.field input.has-prefix { padding-left: 36px; }
+.field input:focus, .field select:focus { outline: none; border-color: #0C3B2A; background: #FFFFFF; }
+.field input::placeholder { color: #9CA39E; }
+.field input[type="date"] { font-family: inherit; }
+.field input[type="month"] { font-family: inherit; }
+.field select { cursor: pointer; appearance: none; -webkit-appearance: none; -moz-appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%230C3B2A' d='M6 8L0 0h12z'/></svg>"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+
+/* Address lookup */
+.adres-result { grid-column: 1 / -1; padding: 12px 16px; border-radius: 10px; background: rgba(196, 245, 78, 0.2); border: 1px solid rgba(12, 59, 42, 0.2); font-size: 13px; color: #0C3B2A; display: none; align-items: center; gap: 10px; }
+.adres-result.show { display: flex; animation: slideDown 0.3s ease-out; }
+.adres-result strong { font-weight: 600; }
+.adres-result.loading { background: rgba(10,13,11,0.04); border-color: rgba(10,13,11,0.1); color: #4A4F4B; }
+.adres-result.error { background: #FEF3E2; border-color: rgba(245, 158, 11, 0.3); color: #78350F; }
+.spinner { width: 14px; height: 14px; border: 2px solid rgba(12,59,42,0.2); border-top-color: #0C3B2A; border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* CHOICES */
+.choices { display: flex; gap: 8px; flex-wrap: wrap; }
+.choice-btn { padding: 10px 20px; border-radius: 100px; border: 1px solid rgba(10,13,11,0.15); background: white; color: #0A0D0B; font-size: 14px; font-weight: 500; font-family: inherit; cursor: pointer; transition: all 0.2s; }
+.choice-btn.active { background: #0C3B2A; color: #C4F54E; border-color: #0C3B2A; }
+.choice-btn:hover:not(.active) { border-color: rgba(10,13,11,0.3); }
+
+.btn-copy { margin-bottom: 16px; padding: 10px 18px; border-radius: 10px; background: rgba(196, 245, 78, 0.2); border: 1px dashed rgba(12, 59, 42, 0.3); color: #0C3B2A; font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+.btn-copy:hover:not(:disabled) { background: rgba(196, 245, 78, 0.35); border-style: solid; }
+.btn-copy:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.info-box { margin-top: 16px; padding: 14px 16px; border-radius: 12px; font-size: 13px; line-height: 1.5; }
+.info-box.neutral { background: #F8F7F3; border: 1px solid rgba(10,13,11,0.08); color: #4A4F4B; }
+.info-box.warning { background: #FEF3E2; border: 1px solid rgba(245, 158, 11, 0.3); color: #78350F; }
+.info-box.hidden { display: none; }
+.info-box strong { color: #0A0D0B; }
+
+.subgroup { margin-top: 20px; padding: 20px; border-radius: 12px; background: rgba(10,13,11,0.02); border: 1px solid rgba(10,13,11,0.06); }
+.subgroup-title { font-size: 13px; font-weight: 500; color: #0A0D0B; margin-bottom: 14px; }
+
+.section-footer { margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(10,13,11,0.08); display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.section-footer-hint { font-size: 12px; color: #707672; flex: 1; min-width: 200px; }
+.btn-primary { padding: 12px 24px; border-radius: 100px; background: #0C3B2A; color: #C4F54E; font-size: 14px; font-weight: 500; font-family: inherit; border: none; cursor: pointer; transition: opacity 0.2s, transform 0.2s; white-space: nowrap; }
+.btn-primary:hover:not(:disabled) { transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.milestone { margin: 16px 0; padding: 14px 18px; background: linear-gradient(90deg, rgba(196, 245, 78, 0.25) 0%, rgba(196, 245, 78, 0.05) 100%); border-left: 3px solid #C4F54E; border-radius: 8px; display: flex; align-items: center; gap: 12px; font-size: 14px; animation: slideDown 0.4s ease-out; }
+.milestone-icon { width: 28px; height: 28px; border-radius: 50%; background: #0C3B2A; color: #C4F54E; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.milestone-text { color: #0A0D0B; }
+.milestone-text strong { color: #0C3B2A; }
+
+/* RESULT */
+.result { border-radius: 24px; padding: 32px 24px; background: #0C3B2A; color: #F4F1EA; margin-top: 32px; }
+@media (min-width: 768px) { .result { padding: 48px; } }
+.result.hidden { display: none; }
+
+/* Max hypotheek — prominent bovenin */
+.result-max {
+  margin-bottom: 28px; padding-bottom: 28px;
+  border-bottom: 1px solid rgba(244, 241, 234, 0.15);
+}
+.result-max-label { font-size: 11px; opacity: 0.6; letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 12px; }
+.result-max-value {
+  font-size: 56px; font-weight: 500; color: #C4F54E; line-height: 1;
+  letter-spacing: -0.03em; font-family: 'Geist', sans-serif;
+}
+@media (min-width: 768px) { .result-max-value { font-size: 88px; } }
+.result-max-sub { font-size: 13px; opacity: 0.7; margin-top: 12px; max-width: 600px; }
+
+.result-grid { display: grid; grid-template-columns: 1fr; gap: 32px; }
+@media (min-width: 768px) { .result-grid { grid-template-columns: 3fr 2fr; gap: 40px; } }
+.result-kicker { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.6; margin-bottom: 12px; }
+.result-pct-big { display: flex; align-items: baseline; gap: 12px; }
+.result-pct-num { font-size: 72px; font-weight: 500; line-height: 1; letter-spacing: -0.04em; color: #C4F54E; font-family: 'Geist', sans-serif; }
+@media (min-width: 768px) { .result-pct-num { font-size: 110px; } }
+.result-pct-suffix { font-size: 28px; opacity: 0.8; font-family: 'Geist Mono', monospace; }
+@media (min-width: 768px) { .result-pct-suffix { font-size: 44px; } }
+.result-headline { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 20px; line-height: 1.2; opacity: 0.9; margin-top: 16px; }
+@media (min-width: 768px) { .result-headline { font-size: 24px; } }
+
+.tags-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 100px; font-size: 12px; }
+.tag.positive { background: rgba(196, 245, 78, 0.15); color: #C4F54E; border: 1px solid rgba(196, 245, 78, 0.3); }
+.tag.negative { background: rgba(244, 241, 234, 0.08); color: rgba(244, 241, 234, 0.7); border: 1px solid rgba(244, 241, 234, 0.15); }
+
+.lead-capture { margin-top: 32px; padding-top: 28px; border-top: 1px solid rgba(244, 241, 234, 0.15); }
+.lead-capture-title { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 22px; margin-bottom: 16px; }
+.lead-form { display: flex; flex-direction: column; gap: 12px; }
+@media (min-width: 640px) { .lead-form { flex-direction: row; align-items: flex-start; } }
+.lead-form input[type="email"] { flex: 1; background: rgba(244, 241, 234, 0.08); border: 1px solid rgba(244, 241, 234, 0.2); border-radius: 100px; padding: 14px 22px; font-size: 15px; color: #F4F1EA; font-family: inherit; }
+.lead-form input[type="email"]:focus { outline: none; border-color: #C4F54E; background: rgba(244, 241, 234, 0.12); }
+.lead-form input[type="email"]::placeholder { color: rgba(244, 241, 234, 0.5); }
+.btn-cta { padding: 14px 28px; border-radius: 100px; background: #C4F54E; color: #0C3B2A; font-size: 15px; font-weight: 500; font-family: inherit; border: none; cursor: pointer; white-space: nowrap; transition: transform 0.2s; }
+.btn-cta:hover { transform: translateY(-1px); }
+.btn-cta:disabled { opacity: 0.5; cursor: not-allowed; }
+.lead-consent { display: flex; align-items: flex-start; gap: 10px; margin-top: 14px; font-size: 12px; opacity: 0.7; line-height: 1.5; }
+.lead-consent input[type="checkbox"] { margin-top: 2px; flex-shrink: 0; width: 16px; height: 16px; accent-color: #C4F54E; cursor: pointer; }
+.lead-success { margin-top: 16px; padding: 14px 18px; background: rgba(196, 245, 78, 0.15); border: 1px solid rgba(196, 245, 78, 0.3); border-radius: 12px; font-size: 14px; display: none; }
+.lead-success.show { display: block; animation: slideDown 0.4s ease-out; }
+
+.result-disclaimer { margin-top: 24px; font-size: 12px; opacity: 0.6; line-height: 1.5; max-width: 600px; }
+.footer-note { text-align: center; font-size: 12px; color: #9CA39E; padding: 24px 0; }
+
+/* === Calculator widgets === */
+.calc-toggle {
+  margin-top: 12px;
+  border: 1px dashed rgba(12, 59, 42, 0.3);
+  border-radius: 12px;
+  background: rgba(196, 245, 78, 0.08);
+  overflow: hidden;
+  transition: all 0.3s;
+}
+.calc-toggle[open] { background: rgba(196, 245, 78, 0.15); border-style: solid; }
+.calc-toggle summary {
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0C3B2A;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+}
+.calc-toggle summary::-webkit-details-marker { display: none; }
+.calc-toggle summary::after {
+  content: '+';
+  margin-left: auto;
+  font-size: 18px;
+  font-weight: 400;
+  transition: transform 0.3s;
+}
+.calc-toggle[open] summary::after { transform: rotate(45deg); }
+.calc-toggle summary:hover { background: rgba(196, 245, 78, 0.1); }
+.calc-body { padding: 4px 16px 16px; }
+.calc-check {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0; font-size: 13px; color: #0A0D0B;
+  cursor: pointer;
+}
+.calc-check input { width: 16px; height: 16px; accent-color: #0C3B2A; cursor: pointer; }
+.calc-result {
+  margin-top: 14px; padding: 14px 16px;
+  background: #0C3B2A; color: #C4F54E;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+}
+.calc-result-label { font-size: 12px; opacity: 0.8; }
+.calc-result-value {
+  font-family: 'Geist Mono', monospace;
+  font-size: 20px; font-weight: 600;
+  color: #C4F54E;
+}
+.btn-apply {
+  padding: 8px 16px; border-radius: 100px;
+  background: #C4F54E; color: #0C3B2A;
+  font-size: 12px; font-weight: 600; font-family: inherit;
+  border: none; cursor: pointer;
+  transition: transform 0.2s;
+}
+.btn-apply:hover { transform: translateY(-1px); }
+
+/* Kosten koper breakdown */
+.kk-breakdown {
+  padding: 4px 16px 16px;
+  font-size: 13px;
+}
+.kk-row {
+  display: flex; justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px dashed rgba(10,13,11,0.08);
+}
+.kk-row:last-of-type { border-bottom: none; }
+.kk-row.total {
+  font-weight: 600; padding-top: 12px; margin-top: 6px;
+  border-top: 1px solid rgba(12,59,42,0.2);
+  color: #0C3B2A; font-size: 15px;
+}
+.kk-row .val { font-family: 'Geist Mono', monospace; }
+.kk-note { font-size: 12px; color: #4A4F4B; margin-top: 10px; line-height: 1.5; }
+
+/* Pensioen info link */
+.pensioen-hint {
+  font-size: 12px; color: #707672; margin-top: 6px;
+}
+.pensioen-hint a {
+  color: #0C3B2A; font-weight: 500;
+  border-bottom: 1px solid rgba(12,59,42,0.3);
+  text-decoration: none;
+  transition: border-color 0.2s;
+}
+.pensioen-hint a:hover { border-color: #0C3B2A; }
+
+/* Sticky bottom — indicatieve max hypotheek */
+.maxbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 65;
+  background: rgba(15, 14, 13, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #F4F1EA;
+  padding: 10px 20px 10px 20px;
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 16px; flex-wrap: wrap;
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  padding-right: 180px; /* ruimte voor floating badge rechts */
+}
+.maxbar.visible { transform: translateY(0); }
+.maxbar-label { font-size: 11px; opacity: 0.6; letter-spacing: 0.12em; text-transform: uppercase; }
+.maxbar-value {
+  font-family: 'Geist Mono', monospace;
+  font-size: 20px; font-weight: 600; color: #C4F54E;
+  margin-top: 2px;
+}
+.maxbar-note { font-size: 11px; opacity: 0.7; max-width: 300px; line-height: 1.4; }
+@media (max-width: 640px) {
+  .maxbar { padding-right: 20px; padding-bottom: 80px; flex-direction: column; align-items: flex-start; gap: 4px; }
+  .maxbar-note { display: none; }
+}
+
+/* === Aankoop begroting === */
+.begroting {
+  margin-top: 32px; padding-top: 28px;
+  border-top: 1px solid rgba(244, 241, 234, 0.15);
+}
+.begroting-title {
+  font-family: 'Instrument Serif', serif; font-style: italic;
+  font-size: 24px; margin-bottom: 6px;
+}
+.begroting-intro {
+  font-size: 13px; opacity: 0.7; margin-bottom: 24px; max-width: 600px; line-height: 1.55;
+}
+.begroting-grid {
+  display: grid; gap: 24px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 720px) {
+  .begroting-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+}
+.begroting-col {
+  background: rgba(244, 241, 234, 0.04);
+  border: 1px solid rgba(244, 241, 234, 0.1);
+  border-radius: 14px;
+  padding: 20px 22px;
+}
+.begroting-col-header {
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  opacity: 0.6; margin-bottom: 14px;
+}
+.begroting-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 8px 0; font-size: 14px;
+  border-bottom: 1px dashed rgba(244, 241, 234, 0.08);
+}
+.begroting-row:last-of-type { border-bottom: none; }
+.begroting-row.hidden { display: none; }
+.begroting-row .lbl {
+  flex: 1; margin-right: 12px;
+  color: rgba(244, 241, 234, 0.85);
+}
+.begroting-row .lbl small {
+  display: block; font-size: 11px; opacity: 0.5; margin-top: 2px;
+}
+.begroting-row .val {
+  font-family: 'Geist Mono', monospace; font-feature-settings: 'tnum';
+  white-space: nowrap;
+  color: #F4F1EA;
+}
+.begroting-row.total {
+  padding: 14px 0 4px; margin-top: 8px;
+  border-top: 1px solid rgba(244, 241, 234, 0.2);
+  font-weight: 600; font-size: 15px;
+}
+.begroting-row.total .val { color: #C4F54E; font-size: 16px; }
+.begroting-saldo {
+  margin-top: 20px;
+  padding: 18px 22px;
+  border-radius: 14px;
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 16px; flex-wrap: wrap;
+}
+.begroting-saldo.positive {
+  background: rgba(196, 245, 78, 0.15);
+  border: 1px solid rgba(196, 245, 78, 0.3);
+}
+.begroting-saldo.negative {
+  background: rgba(220, 80, 60, 0.2);
+  border: 1px solid rgba(220, 80, 60, 0.4);
+}
+.begroting-saldo .saldo-label { font-size: 14px; opacity: 0.85; }
+.begroting-saldo .saldo-label strong { display: block; font-size: 12px; opacity: 0.7; font-weight: 500; margin-bottom: 2px; }
+.begroting-saldo .saldo-value {
+  font-family: 'Geist Mono', monospace; font-size: 22px; font-weight: 600;
+  white-space: nowrap;
+}
+.begroting-saldo.positive .saldo-value { color: #C4F54E; }
+.begroting-saldo.negative .saldo-value { color: #FFB8A8; }
+</style>
+</head>
+<body>
+
+<div class="progress-bar"><div class="progress-bar-fill" id="progressBar"></div></div>
+
+<header class="header">
+  <div class="container header-inner">
+    <div class="brand">
+      <div class="brand-logo"><div class="brand-dot"></div></div>
+      <div>
+        <div class="brand-name">Dossiercompleet<span>.nl</span></div>
+        <div class="brand-sub">Slagingsmeter</div>
+      </div>
+    </div>
+    <div class="pct-widget">
+      <div class="pct-label-wrap">
+        <div class="pct-kicker">Jouw slagingskans</div>
+        <div class="pct-msg" id="pctMsg">Vul meer in voor een betere inschatting</div>
+        <div class="pct-progress" id="pctProgress">0 van 10 stappen</div>
+      </div>
+      <div class="pct-ring-wrap" id="pctRing">
+        <svg width="64" height="64"><circle cx="32" cy="32" r="26" class="ring-bg"/><circle cx="32" cy="32" r="26" class="ring-fg" id="ringFg"/></svg>
+        <div class="pct-num"><span class="num" id="pctNum">22</span><span class="pct-suffix">%</span></div>
+        <div class="pct-delta" id="pctDelta">+0%</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<button class="float-badge" id="floatBadge" type="button" title="Spring naar volgende vraag">
+  <div class="float-badge-ring">
+    <svg width="36" height="36"><circle cx="18" cy="18" r="16" class="bg"/><circle cx="18" cy="18" r="16" class="fg" id="floatRingFg"/></svg>
+    <div class="float-badge-num" id="floatPctNum">22</div>
+  </div>
+  <div class="float-badge-text">
+    <div class="label">Slagingskans</div>
+    <div class="value"><span id="floatPctValue">22</span>%</div>
+  </div>
+</button>
+
+<!-- Sticky max hypotheek bar -->
+<div class="maxbar" id="maxbar">
+  <div>
+    <div class="maxbar-label">Indicatief · max hypotheek</div>
+    <div class="maxbar-value" id="maxbarValue">€ —</div>
+  </div>
+  <div class="maxbar-note">Getoetst met 5% rente bij 10 jaar rentevast (NIBUD-norm 2026)</div>
+</div>
+
+<div class="container hero">
+  <h1>Hoe groot is de kans dat <em>jouw droomwoning</em> daadwerkelijk van jou wordt?</h1>
+  <p>Met een compleet dossier maak je meer kans dat je de woning ook kan betalen én kan betrekken. Beantwoord onze vragen — hoe vollediger het beeld, hoe preciezer we jullie slagingspercentage én maximale hypotheek kunnen bepalen.</p>
+</div>
+
+<main class="container sections">
+
+  <!-- 01 · AANVRAGER 1 -->
+  <section class="section open" data-id="a1">
+    <button class="section-head" type="button">
+      <div class="section-head-left">
+        <div class="section-badge"><span class="badge-num">01</span></div>
+        <div><div class="section-title">Over jou</div><div class="section-sub">Aanvrager 1 — persoonsgegevens</div></div>
+      </div>
+      <div class="section-head-right">
+        <span class="section-status">ingevuld</span>
+        <svg class="section-chevron" width="20" height="20" viewBox="0 0 20 20"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+      </div>
+    </button>
+    <div class="section-body">
+      <div class="grid grid-3">
+        <div class="field">
+          <label>Voornaam<span class="field-bonus" data-bonus="1.2">+1.2%</span></label>
+          <div class="field-input"><input type="text" data-key="a1Voornaam" placeholder="Anna"></div>
+        </div>
+        <div class="field">
+          <label>Tussenvoegsel<span class="field-bonus optional">optioneel</span></label>
+          <div class="field-input"><input type="text" data-key="a1Tussenvoegsel" placeholder="van der"></div>
+        </div>
+        <div class="field">
+          <label>Achternaam<span class="field-bonus" data-bonus="1.2">+1.2%</span></label>
+          <div class="field-input"><input type="text" data-key="a1Achternaam" placeholder="Bakker"></div>
+        </div>
+      </div>
+      <div class="grid grid-2" style="margin-top: 16px;">
+        <div class="field">
+          <label>Geboortedatum<span class="field-bonus" data-bonus="1.5">+1.5%</span></label>
+          <div class="field-input"><input type="date" data-key="a1Geboorte"></div>
+        </div>
+        <div class="field">
+          <label>E-mailadres<span class="field-bonus" data-bonus="1.3">+1.3%</span></label>
+          <div class="field-input"><input type="email" data-key="a1Email" placeholder="naam@voorbeeld.nl"></div>
+        </div>
+      </div>
+      <div class="grid grid-postcode" style="margin-top: 16px;">
+        <div class="field">
+          <label>Postcode<span class="field-bonus" data-bonus="1.0">+1%</span></label>
+          <div class="field-input"><input type="text" data-key="a1Postcode" placeholder="1012 AB" maxlength="7" autocomplete="postal-code"></div>
+        </div>
+        <div class="field">
+          <label>Huisnummer<span class="field-bonus" data-bonus="1.0">+1%</span></label>
+          <div class="field-input"><input type="text" data-key="a1Huisnr" placeholder="42" inputmode="numeric"></div>
+        </div>
+        <div class="field">
+          <label>Toevoeging<span class="field-bonus optional">optioneel</span></label>
+          <div class="field-input"><input type="text" data-key="a1Toevoeging" placeholder="A"></div>
+        </div>
+      </div>
+      <div class="adres-result" id="a1AdresResult"></div>
+      <div class="grid" style="margin-top: 16px;">
+        <div class="field">
+          <label>Telefoonnummer<span class="field-bonus" data-bonus="1.2">+1.2%</span></label>
+          <div class="field-input"><input type="tel" data-key="a1Telefoon" placeholder="06 …"></div>
+        </div>
+      </div>
+      <div class="section-footer">
+        <div class="section-footer-hint">Adres wordt automatisch opgezocht via postcode + huisnummer</div>
+        <button class="btn-primary" data-next="partner" disabled>Volgende →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 · SAMEN KOPEN? -->
+  <section class="section" data-id="partner">
+    <button class="section-head" type="button">
+      <div class="section-head-left">
+        <div class="section-badge"><span class="badge-num">02</span></div>
+        <div><div class="section-title">Samen kopen?</div><div class="section-sub">Koop je de woning met een partner?</div></div>
+      </div>
+      <div class="section-head-right">
+        <span class="section-status">ingevuld</span>
+        <svg class="section-chevron" width="20" height="20" viewBox="0 0 20 20"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+      </div>
+    </button>
+    <div class="section-body">
+      <div class="field">
+        <label><span class="field-bonus" data-bonus="2">+2%</span></label>
+        <div class="choices">
+          <button type="button" class="choice-btn" data-key="samen" data-value="ja">Ja, we kopen samen</button>
+          <button type="button" class="choice-btn" data-key="samen" data-value="nee">Nee, ik koop alleen</button>
+        </div>
+      </div>
+      <div class="section-footer">
+        <div class="section-footer-hint">Elke vraag die je beantwoordt = hoger slagingspercentage</div>
+        <button class="btn-primary" data-next="a2" disabled>Volgende →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 · AANVRAGER 2 -->
+  <section class="section hidden" data-id="a2">
+    <button class="section-head" type="button">
+      <div class="section-head-left">
+        <div class="section-badge"><span class="badge-num">03</span></div>
+        <div><div class="section-title">Over aanvrager 2</div><div class="section-sub">Aanvrager 2 — persoonsgegevens</div></div>
+      </div>
+      <div class="section-head-right">
+        <span class="section-status">ingevuld</span>
+        <svg class="section-chevron" width="20" height="20" viewBox="0 0 20 20"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+      </div>
+    </button>
+    <div class="section-body">
+      <button class="btn-copy" id="copyAddressBtn" type="button">↩ Zelfde adres als aanvrager 1</button>
+      <div class="grid grid-3">
+        <div class="field">
+          <label>Voornaam<span class="field-bonus" data-bonus="1.0">+1%</span></label>
+          <div class="field-input"><input type="text" data-key="a2Voornaam" placeholder="Lars"></div>
+        </div>
+        <div class="field">
+          <label>Tussenvoegsel<span class="field-bonus optional">optioneel</span></label>
+          <div class="field-input"><input type="text" data-key="a2Tussenvoegsel"></div>
+        </div>
+        <div class="field">
+          <label>Achternaam<span class="field-bonus" data-bonus="1.0">+1%</span></label>
+          <div class="field-input"><input type="text" data-key="a2Achternaam"></div>
+        </div>
+      </div>
+      <div class="grid grid-2" style="margin-top: 16px;">
+        <div class="field">
+          <label>Geboortedatum<span class="field-bonus" data-bonus="1.3">+1.3%</span></label>
+          <div class="field-input"><input type="date" data-key="a2Geboorte"></div>
+        </div>
+        <div class="field">
+          <label>E-mailadres<span class="field-bonus" data-bonus="1.0">+1%</span></label>
+          <div class="field-input"><input type="email" data-key="a2Email"></div>
+        </div>
+      </div>
+      <div class="grid grid-postcode" style="margin-top: 16px;">
+        <div class="field">
+          <label>Postcode<span class="field-bonus" data-bonus="0.8">+0.8%</span></label>
+          <div class="field-input"><input type="text" data-key="a2Postcode" placeholder="1012 AB" maxlength="7"></div>
+        </div>
+        <div class="field">
+          <label>Huisnummer<span class="field-bonus" data-bonus="0.8">+0.8%</span></label>
+          <div class="field-input"><input type="text" data-key="a2Huisnr" inputmode="numeric"></div>
+        </div>
+        <div class="field">
+          <label>Toevoeging<span class="field-bonus optional">optioneel</span></label>
+          <div class="field-input"><input type="text" data-key="a2Toevoeging"></div>
+        </div>
+      </div>
+      <div class="adres-result" id="a2AdresResult"></div>
+      <div class="grid" style="margin-top: 16px;">
+        <div class="field">
+          <label>Telefoonnummer<span class="field-bonus" data-bonus="1.0">+1%</span></label>
+          <div class="field-input"><input type="tel" data-key="a2Telefoon"></div>
+        </div>
+      </div>
+      <div class="section-footer">
+        <div class="section-footer-hint">Tip: gebruik de snelkoppeling bovenin voor een gedeeld adres</div>
+        <button class="btn-primary" data-next="historie1" disabled>Volgende →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 · HISTORIE AANVRAGER 1 -->
+  <section class="section" data-id="historie1">
+    <button class="section-head" type="button">
+      <div class="section-head-left">
+        <div class="section-badge"><span class="badge-num">04</span></div>
+        <div><div class="section-title">Hypotheek historie</div><div class="section-sub" id="sub-historie1">Heb je ooit eerder een hypotheek gehad?</div></div>
+      </div>
+      <div class="section-head-right">
+        <span class="section-status">ingevuld</span>
+        <svg class="section-chevron" width="20" height="20" viewBox="0 0 20 20"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+      </div>
+    </button>
+    <div class="section-body">
+      <div class="field">
+        <label>Heb je ooit eerder een hypotheek gehad?<span class="field-bonus" data-bonus="2.5">+2.5%</span></label>
+        <div class="choices">
+          <button type="button" class="choice-btn" data-key="h1Gehad" data-value="ja">Ja, eerder gehad</button>
+          <button type="button" class="choice-btn" data-key="h1Gehad" data-value="nee">Nee, dit wordt de eerste</button>
+        </div>
+      </div>
+      <div class="subgroup hidden" id="h1Detail">
+        <div class="subgroup-title">Vertel ons er iets meer over</div>
+        <div class="field">
+          <label>Status van die hypotheek<span class="field-bonus" data-bonus="1.5">+1.5%</span></label>
+          <div class="choices">
+            <button type="button" class="choice-btn" data-key="h1Status" data-value="lopend">Loopt nog</button>
+            <button type="button" class="choice-btn" data-key="h1Status" data-value="afgelost">Afgelost</button>
+          </div>
+        </div>
+        <div class="grid grid-2 hidden" id="h1LopendDetail" style="margin-top: 16px;">
+          <div class="field">
+            <label>Oorspronkelijke hoofdsom<span class="field-bonus" data-bonus="1.5">+1.5%</span></label>
+            <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-key="h1Hoofdsom" data-currency="1" placeholder="285.000" class="has-prefix"></div>
+          </div>
+          <div class="field">
+            <label>Restant hoofdsom<span class="field-bonus" data-bonus="1.5">+1.5%</span></label>
+            <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-key="h1Rest" data-currency="1" placeholder="215.000" class="has-prefix"></div>
+          </div>
+          <div class="field col-2">
+            <label>Startdatum van de hypotheek<span class="field-bonus" data-bonus="1.5">+1.5%</span></label>
+            <div class="field-input"><input type="month" data-key="h1Startdatum"></div>
+          </div>
+        </div>
+      </div>
+      <div class="section-footer">
+        <div class="section-footer-hint">Elke vraag die je beantwoordt = hoger slagingspercentage</div>
+        <button class="btn-primary" data-next="historie2" disabled>Volgende →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 · HISTORIE PARTNER -->
+  <section class="section hidden" data-id="historie2">
+    <button class="section-head" type="button">
+      <div class="section-head-left">
+        <div class="section-badge"><span class="badge-num">05</span></div>
+        <div><div class="section-title">Hypotheek historie aanvrager 2</div><div class="section-sub" id="sub-historie2">En aanvrager 2?</div></div>
+      </div>
+      <div class="section-head-right">
+        <span class="section-status">ingevuld</span>
+        <svg class="section-chevron" width="20" height="20" viewBox="0 0 20 20"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+      </div>
+    </button>
+    <div class="section-body">
+      <button class="btn-copy" id="copyHistorieBtn" type="button">↩ Zelfde historie als aanvrager 1</button>
+      <div class="field">
+        <label>Heeft aanvrager 2 ooit een hypotheek gehad?<span class="field-bonus" data-bonus="2.0">+2%</span></label>
+        <div class="choices">
+          <button type="button" class="choice-btn" data-key="h2Gehad" data-value="ja">Ja, eerder gehad</button>
+          <button type="button" class="choice-btn" data-key="h2Gehad" data-value="nee">Nee</button>
+        </div>
+      </div>
+      <div class="subgroup hidden" id="h2Detail">
+        <div class="subgroup-title">Meer informatie over deze hypotheek</div>
+        <div class="field">
+          <label>Status van die hypotheek<span class="field-bonus" data-bonus="1.5">+1.5%</span></label>
+          <div class="choices">
+            <button type="button" class="choice-btn" data-key="h2Status" data-value="lopend">Loopt nog</button>
+            <button type="button" class="choice-btn" data-key="h2Status" data-value="afgelost">Afgelost</button>
+          </div>
+        </div>
+        <div class="grid grid-2 hidden" id="h2LopendDetail" style="margin-top: 16px;">
+          <div class="field">
+            <label>Oorspronkelijke hoofdsom<span class="field-bonus" data-bonus="1.5">+1.5%</span></label>
+            <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-key="h2Hoofdsom" data-currency="1" placeholder="285.000" class="has-prefix"></div>
+          </div>
+          <div class="field">
+            <label>Restant hoofdsom<span class="field-bonus" data-bonus="1.5">+1.5%</span></label>
+            <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-key="h2Rest" data-currency="1" placeholder="215.000" class="has-prefix"></div>
+          </div>
+          <div class="field col-2">
+            <label>Startdatum van de hypotheek<span class="field-bonus" data-bonus="1.5">+1.5%</span></label>
+            <div class="field-input"><input type="month" data-key="h2Startdatum"></div>
+          </div>
+        </div>
+      </div>
+      <div class="section-footer">
+        <div class="section-footer-hint">Gedeelde historie? Gebruik de snelkoppeling bovenin</div>
+        <button class="btn-primary" data-next="woning" disabled>Volgende →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 · WONING -->
+  <section class="section" data-id="woning">
+    <button class="section-head" type="button">
+      <div class="section-head-left">
+        <div class="section-badge"><span class="badge-num">06</span></div>
+        <div><div class="section-title">De aan te kopen woning</div><div class="section-sub">Details van het project</div></div>
+      </div>
+      <div class="section-head-right">
+        <span class="section-status">ingevuld</span>
+        <svg class="section-chevron" width="20" height="20" viewBox="0 0 20 20"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+      </div>
+    </button>
+    <div class="section-body">
+      <div class="grid grid-2">
+        <div class="field">
+          <label>Koop-/aanneemsom<span class="field-bonus" data-bonus="1.8">+1.8%</span></label>
+          <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-key="koopsom" data-currency="1" placeholder="450.000" class="has-prefix"></div>
+        </div>
+        <div class="field">
+          <label>Meerwerk (geschat)<span class="field-bonus" data-bonus="1.8">+1.8%</span></label>
+          <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-key="meerwerk" data-currency="1" placeholder="25.000" class="has-prefix"></div>
+        </div>
+        <div class="field">
+          <label>Energielabel<span class="field-bonus" data-bonus="1.8">+1.8%</span></label>
+          <select data-key="energielabel">
+            <option value="">Selecteer…</option>
+            <option value="A++++">A++++ (NOM / nul-op-de-meter)</option>
+            <option value="A+++">A+++</option><option value="A++">A++</option>
+            <option value="A+">A+</option><option value="A">A</option>
+            <option value="B">B of lager</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Verwachte oplevering<span class="field-bonus" data-bonus="1.5">+1.5%</span></label>
+          <div class="field-input"><input type="text" data-key="oplevering" placeholder="Bijv. Q3 2026"></div>
+        </div>
+        <div class="field">
+          <label>Bouwperiode in maanden<span class="field-bonus" data-bonus="1.2">+1.2%</span></label>
+          <div class="field-input"><input type="number" data-key="bouwperiode" placeholder="18" min="0" max="36"></div>
+        </div>
+        <div class="field">
+          <label>Huidige woonsituatie<span class="field-bonus" data-bonus="1.5">+1.5%</span></label>
+          <select data-key="huidigeWonen">
+            <option value="">Selecteer…</option>
+            <option value="huur">Huurwoning</option>
+            <option value="koop">Eigen koopwoning</option>
+            <option value="ouders">Bij ouders / familie</option>
+            <option value="anders">Anders</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>NHG gewenst?<span class="field-bonus" data-bonus="1.5">+1.5%</span></label>
+          <div class="choices">
+            <button type="button" class="choice-btn" data-key="nhg" data-value="ja">Ja</button>
+            <button type="button" class="choice-btn" data-key="nhg" data-value="nee">Nee</button>
+            <button type="button" class="choice-btn" data-key="nhg" data-value="weet-niet">Weet niet</button>
+          </div>
+        </div>
+      </div>
+      <div class="info-box warning hidden" id="info-nhg-warning">⚠ Koopsom boven NHG-grens (€470.000 in 2026) — NHG niet mogelijk op volledig bedrag.</div>
+
+      <details class="calc-toggle" style="margin-top: 20px;">
+        <summary>🧮 Kosten koper berekenen</summary>
+        <div class="kk-breakdown">
+          <div class="kk-row"><span>Overdrachtsbelasting<br><span style="font-size:11px;color:#707672">bij nieuwbouw: 0% · bestaande bouw: 2%</span></span><span class="val" id="kkOB">€ 0</span></div>
+          <div class="kk-row"><span>Notaris- en leveringskosten</span><span class="val">€ 1.500</span></div>
+          <div class="kk-row"><span>Taxatiekosten<br><span style="font-size:11px;color:#707672">vaak niet nodig bij nieuwbouw</span></span><span class="val" id="kkTax">€ 0</span></div>
+          <div class="kk-row"><span>Advies- en bemiddelingskosten hypotheek</span><span class="val">€ 3.500</span></div>
+          <div class="kk-row" id="kkNhgRow"><span>NHG borgstellingsprovisie<br><span style="font-size:11px;color:#707672">0,4% van hypotheekbedrag</span></span><span class="val" id="kkNhg">€ 0</span></div>
+          <div class="kk-row" id="kkBouwRow"><span>Renteverlies tijdens de bouw<br><span style="font-size:11px;color:#707672">5% rente · gemiddeld 50% van hypotheek uitstaand · bouwperiode</span></span><span class="val" id="kkBouw">€ 0</span></div>
+          <div class="kk-row"><span>Reservering dubbele woonlasten<br><span style="font-size:11px;color:#707672">5% van koopsom voor 6 maanden</span></span><span class="val" id="kkDubbel">€ 0</span></div>
+          <div class="kk-row total"><span>Totaal geschatte kosten koper</span><span class="val" id="kkTotal">€ 5.000</span></div>
+          <div class="kk-note" id="kkNote">
+            Dit bedrag heb je nodig uit eigen middelen (spaargeld, schenking of overwaarde) — een hypotheek dekt namelijk alleen de woning zelf.
+          </div>
+          <div style="margin-top: 12px;">
+            <label class="calc-check">
+              <input type="checkbox" data-kk="bestaande"> Bereken voor bestaande bouw (met 2% overdrachtsbelasting en €800 taxatie)
+            </label>
+          </div>
+        </div>
+      </details>
+
+      <div class="section-footer">
+        <div class="section-footer-hint">Elke vraag die je beantwoordt = hoger slagingspercentage</div>
+        <button class="btn-primary" data-next="inkomen1" disabled>Volgende →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 · INKOMEN A1 -->
+  <section class="section" data-id="inkomen1">
+    <button class="section-head" type="button">
+      <div class="section-head-left">
+        <div class="section-badge"><span class="badge-num">07</span></div>
+        <div><div class="section-title">Inkomen aanvrager 1</div><div class="section-sub" id="sub-inkomen1">Financiële positie van jou</div></div>
+      </div>
+      <div class="section-head-right">
+        <span class="section-status">ingevuld</span>
+        <svg class="section-chevron" width="20" height="20" viewBox="0 0 20 20"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+      </div>
+    </button>
+    <div class="section-body">
+      <div class="grid grid-2">
+        <div class="field">
+          <label>Bruto jaarinkomen<span class="field-bonus" data-bonus="1.8">+1.8%</span></label>
+          <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-key="brutoA1" data-currency="1" placeholder="52.000" class="has-prefix"></div>
+          <details class="calc-toggle">
+            <summary>🧮 Help me met berekenen</summary>
+            <div class="calc-body">
+              <div class="grid grid-2">
+                <div class="field">
+                  <label>Bruto maandsalaris</label>
+                  <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-calc="m1Maand" class="has-prefix" placeholder="3.500"></div>
+                </div>
+                <div class="field">
+                  <label>Extra per jaar (bonus e.d.)</label>
+                  <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-calc="m1Bonus" class="has-prefix" placeholder="0"></div>
+                </div>
+              </div>
+              <label class="calc-check"><input type="checkbox" data-calc="m1Vakantie" checked> Inclusief 8% vakantiegeld</label>
+              <label class="calc-check"><input type="checkbox" data-calc="m1Dertien"> 13e maand ontvangen</label>
+              <div class="calc-result">
+                <div><div class="calc-result-label">Berekend jaarinkomen</div><div class="calc-result-value" id="m1Result">€ 0</div></div>
+                <button type="button" class="btn-apply" data-apply="brutoA1">Invullen →</button>
+              </div>
+            </div>
+          </details>
+        </div>
+        <div class="field">
+          <label>Type dienstverband<span class="field-bonus" data-bonus="1.8">+1.8%</span></label>
+          <select data-key="contractA1">
+            <option value="">Selecteer…</option>
+            <option value="vast">Vast contract</option>
+            <option value="tijdelijk-verklaring">Tijdelijk + intentieverklaring</option>
+            <option value="tijdelijk">Tijdelijk zonder verklaring</option>
+            <option value="zzp">ZZP / ondernemer</option>
+            <option value="dga">DGA / eigen BV</option>
+            <option value="pensioen">Gepensioneerd</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Werkgever / bedrijf<span class="field-bonus" data-bonus="1.5">+1.5%</span></label>
+          <div class="field-input"><input type="text" data-key="werkgeverA1" placeholder="Naam werkgever"></div>
+        </div>
+        <div class="field">
+          <label>Dienstjaren / jaren als ZZP'er<span class="field-bonus" data-bonus="1.5">+1.5%</span></label>
+          <div class="field-input"><input type="number" data-key="dienstjarenA1" placeholder="5"></div>
+        </div>
+        <div class="field col-2 hidden" id="pensioen1-field">
+          <label>Verwacht bruto jaarlijks pensioeninkomen<span class="field-bonus" data-bonus="1.8">+1.8%</span></label>
+          <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-key="pensioen1" data-currency="1" placeholder="0 als nog niet" class="has-prefix"></div>
+          <div class="pensioen-hint">
+            Je leeftijd valt in de pensioenzone. Check je pensioenopbouw op <a href="https://www.mijnpensioenoverzicht.nl" target="_blank" rel="noopener">mijnpensioenoverzicht.nl</a> — daar zie je precies wat je straks maandelijks ontvangt.
+          </div>
+        </div>
+      </div>
+      <div class="section-footer">
+        <div class="section-footer-hint">Studieschuld en andere verplichtingen komen in de volgende stap</div>
+        <button class="btn-primary" data-next="inkomen2" disabled>Volgende →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 08 · INKOMEN A2 -->
+  <section class="section hidden" data-id="inkomen2">
+    <button class="section-head" type="button">
+      <div class="section-head-left">
+        <div class="section-badge"><span class="badge-num">08</span></div>
+        <div><div class="section-title">Inkomen aanvrager 2</div><div class="section-sub" id="sub-inkomen2">Financiële positie aanvrager 2</div></div>
+      </div>
+      <div class="section-head-right">
+        <span class="section-status">ingevuld</span>
+        <svg class="section-chevron" width="20" height="20" viewBox="0 0 20 20"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+      </div>
+    </button>
+    <div class="section-body">
+      <div class="grid grid-2">
+        <div class="field">
+          <label>Bruto jaarinkomen<span class="field-bonus" data-bonus="1.6">+1.6%</span></label>
+          <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-key="brutoA2" data-currency="1" placeholder="42.000" class="has-prefix"></div>
+          <details class="calc-toggle">
+            <summary>🧮 Help me met berekenen</summary>
+            <div class="calc-body">
+              <div class="grid grid-2">
+                <div class="field">
+                  <label>Bruto maandsalaris</label>
+                  <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-calc="m2Maand" class="has-prefix" placeholder="3.000"></div>
+                </div>
+                <div class="field">
+                  <label>Extra per jaar (bonus e.d.)</label>
+                  <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-calc="m2Bonus" class="has-prefix" placeholder="0"></div>
+                </div>
+              </div>
+              <label class="calc-check"><input type="checkbox" data-calc="m2Vakantie" checked> Inclusief 8% vakantiegeld</label>
+              <label class="calc-check"><input type="checkbox" data-calc="m2Dertien"> 13e maand ontvangen</label>
+              <div class="calc-result">
+                <div><div class="calc-result-label">Berekend jaarinkomen</div><div class="calc-result-value" id="m2Result">€ 0</div></div>
+                <button type="button" class="btn-apply" data-apply="brutoA2">Invullen →</button>
+              </div>
+            </div>
+          </details>
+        </div>
+        <div class="field">
+          <label>Type dienstverband<span class="field-bonus" data-bonus="1.6">+1.6%</span></label>
+          <select data-key="contractA2">
+            <option value="">Selecteer…</option>
+            <option value="vast">Vast contract</option>
+            <option value="tijdelijk-verklaring">Tijdelijk + intentieverklaring</option>
+            <option value="tijdelijk">Tijdelijk zonder verklaring</option>
+            <option value="zzp">ZZP / ondernemer</option>
+            <option value="dga">DGA / eigen BV</option>
+            <option value="pensioen">Gepensioneerd</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Werkgever / bedrijf<span class="field-bonus" data-bonus="1.3">+1.3%</span></label>
+          <div class="field-input"><input type="text" data-key="werkgeverA2"></div>
+        </div>
+        <div class="field">
+          <label>Dienstjaren<span class="field-bonus" data-bonus="1.3">+1.3%</span></label>
+          <div class="field-input"><input type="number" data-key="dienstjarenA2"></div>
+        </div>
+        <div class="field col-2 hidden" id="pensioen2-field">
+          <label>Verwacht bruto jaarlijks pensioeninkomen<span class="field-bonus" data-bonus="1.5">+1.5%</span></label>
+          <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-key="pensioen2" data-currency="1" placeholder="0 als nog niet" class="has-prefix"></div>
+          <div class="pensioen-hint">
+            Leeftijd aanvrager 2 valt in de pensioenzone. Check pensioenopbouw op <a href="https://www.mijnpensioenoverzicht.nl" target="_blank" rel="noopener">mijnpensioenoverzicht.nl</a>.
+          </div>
+        </div>
+      </div>
+      <div class="section-footer">
+        <div class="section-footer-hint">Studieschuld en andere verplichtingen komen in de volgende stap</div>
+        <button class="btn-primary" data-next="geld" disabled>Volgende →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 09 · EIGEN GELD -->
+  <section class="section" data-id="geld">
+    <button class="section-head" type="button">
+      <div class="section-head-left">
+        <div class="section-badge"><span class="badge-num">09</span></div>
+        <div><div class="section-title">Eigen middelen</div><div class="section-sub">Spaargeld, schenking, overwaarde</div></div>
+      </div>
+      <div class="section-head-right">
+        <span class="section-status">ingevuld</span>
+        <svg class="section-chevron" width="20" height="20" viewBox="0 0 20 20"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+      </div>
+    </button>
+    <div class="section-body">
+      <div class="grid grid-2">
+        <div class="field">
+          <label>Spaargeld voor kosten koper<span class="field-bonus" data-bonus="1.5">+1.5%</span></label>
+          <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-key="spaargeld" data-currency="1" placeholder="15.000" class="has-prefix"></div>
+        </div>
+        <div class="field">
+          <label>Schenking van familie<span class="field-bonus" data-bonus="1.5">+1.5%</span></label>
+          <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-key="schenking" data-currency="1" placeholder="0" class="has-prefix"></div>
+        </div>
+        <div class="field col-2 hidden" id="overwaarde-field">
+          <label>Verwachte overwaarde huidige woning<span class="field-bonus" data-bonus="1.5">+1.5%</span></label>
+          <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-key="overwaarde" data-currency="1" placeholder="80.000" class="has-prefix"></div>
+        </div>
+      </div>
+      <div class="info-box neutral">Bij nieuwbouw zijn de kosten koper lager dan bij bestaande bouw — reken bij nieuwbouw op ~3% van de koopsom, bij bestaande bouw op ~5-6%. Gebruik de calculator in de woning-sectie voor een preciezere inschatting.</div>
+      <div class="section-footer">
+        <div class="section-footer-hint">Elke vraag die je beantwoordt = hoger slagingspercentage</div>
+        <button class="btn-primary" data-next="verplichtingen" disabled>Volgende →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · OVERIGE VERPLICHTINGEN -->
+  <section class="section" data-id="verplichtingen">
+    <button class="section-head" type="button">
+      <div class="section-head-left">
+        <div class="section-badge"><span class="badge-num">10</span></div>
+        <div><div class="section-title">Overige verplichtingen</div><div class="section-sub">Studieschuld, kredieten, alimentatie, BKR</div></div>
+      </div>
+      <div class="section-head-right">
+        <span class="section-status">ingevuld</span>
+        <svg class="section-chevron" width="20" height="20" viewBox="0 0 20 20"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+      </div>
+    </button>
+    <div class="section-body">
+
+      <!-- STUDIESCHULD A1 -->
+      <div class="field" style="margin-bottom: 20px;">
+        <label id="label-studie1">Heb je een studieschuld?<span class="field-bonus" data-bonus="2.0">+2%</span></label>
+        <div class="choices">
+          <button type="button" class="choice-btn" data-key="studie1Heeft" data-value="nee">Nee</button>
+          <button type="button" class="choice-btn" data-key="studie1Heeft" data-value="ja">Ja</button>
+        </div>
+      </div>
+      <div class="subgroup hidden" id="studie1Detail">
+        <div class="subgroup-title">Gegevens studieschuld aanvrager 1</div>
+        <div class="grid grid-2">
+          <div class="field">
+            <label>Oorspronkelijke hoofdsom<span class="field-bonus" data-bonus="1.2">+1.2%</span></label>
+            <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-key="studie1Hoofdsom" data-currency="1" placeholder="28.000" class="has-prefix"></div>
+          </div>
+          <div class="field">
+            <label>Huidige restschuld<span class="field-bonus" data-bonus="1.2">+1.2%</span></label>
+            <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-key="studie1Rest" data-currency="1" placeholder="22.000" class="has-prefix"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STUDIESCHULD A2 -->
+      <div class="field hidden" id="studie2Question" style="margin: 24px 0 20px;">
+        <label id="label-studie2">Heeft aanvrager 2 een studieschuld?<span class="field-bonus" data-bonus="1.8">+1.8%</span></label>
+        <div class="choices">
+          <button type="button" class="choice-btn" data-key="studie2Heeft" data-value="nee">Nee</button>
+          <button type="button" class="choice-btn" data-key="studie2Heeft" data-value="ja">Ja</button>
+        </div>
+      </div>
+      <div class="subgroup hidden" id="studie2Detail">
+        <div class="subgroup-title">Gegevens studieschuld aanvrager 2</div>
+        <div class="grid grid-2">
+          <div class="field">
+            <label>Oorspronkelijke hoofdsom<span class="field-bonus" data-bonus="1.0">+1%</span></label>
+            <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-key="studie2Hoofdsom" data-currency="1" placeholder="28.000" class="has-prefix"></div>
+          </div>
+          <div class="field">
+            <label>Huidige restschuld<span class="field-bonus" data-bonus="1.0">+1%</span></label>
+            <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-key="studie2Rest" data-currency="1" placeholder="22.000" class="has-prefix"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LENINGEN -->
+      <div class="field" style="margin: 24px 0 20px;">
+        <label>Lopende kredieten of persoonlijke leningen?<span class="field-bonus" data-bonus="1.8">+1.8%</span></label>
+        <div class="choices">
+          <button type="button" class="choice-btn" data-key="heeftLening" data-value="nee">Geen leningen</button>
+          <button type="button" class="choice-btn" data-key="heeftLening" data-value="ja">Ja, ik heb een lening</button>
+        </div>
+      </div>
+      <div class="subgroup hidden" id="leningDetail">
+        <div class="subgroup-title">Vertel ons over de lening(en)</div>
+        <div class="grid grid-2">
+          <div class="field">
+            <label>Openstaand bedrag totaal<span class="field-bonus" data-bonus="1.2">+1.2%</span></label>
+            <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-key="leningBedrag" data-currency="1" placeholder="5.000" class="has-prefix"></div>
+          </div>
+          <div class="field">
+            <label>Maandlast<span class="field-bonus" data-bonus="1.2">+1.2%</span></label>
+            <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-key="leningMaand" data-currency="1" placeholder="150" class="has-prefix"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CREDITCARD / ROOD -->
+      <div class="field" style="margin: 24px 0 20px;">
+        <label>Creditcard of roodstandfaciliteit?<span class="field-bonus" data-bonus="1.5">+1.5%</span></label>
+        <div class="choices">
+          <button type="button" class="choice-btn" data-key="heeftBkr" data-value="nee">Nee</button>
+          <button type="button" class="choice-btn" data-key="heeftBkr" data-value="ja">Ja</button>
+        </div>
+      </div>
+      <div class="subgroup hidden" id="bkrDetail">
+        <div class="field">
+          <label>Totaal kredietlimiet (creditcard + rood staan)<span class="field-bonus" data-bonus="1.0">+1%</span></label>
+          <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-key="bkrLimit" data-currency="1" placeholder="2.500" class="has-prefix"></div>
+        </div>
+      </div>
+
+      <!-- PRIVATE LEASE -->
+      <div class="field" style="margin: 24px 0 20px;">
+        <label>Private lease auto of andere voertuigen?<span class="field-bonus" data-bonus="1.5">+1.5%</span></label>
+        <div class="choices">
+          <button type="button" class="choice-btn" data-key="heeftLease" data-value="nee">Nee</button>
+          <button type="button" class="choice-btn" data-key="heeftLease" data-value="ja">Ja</button>
+        </div>
+      </div>
+      <div class="subgroup hidden" id="leaseDetail">
+        <div class="field">
+          <label>Maandlast private lease<span class="field-bonus" data-bonus="1.0">+1%</span></label>
+          <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-key="leaseMaand" data-currency="1" placeholder="450" class="has-prefix"></div>
+        </div>
+      </div>
+
+      <!-- ALIMENTATIE -->
+      <div class="field" style="margin: 24px 0 20px;">
+        <label>Betaal je alimentatie?<span class="field-bonus" data-bonus="1.5">+1.5%</span></label>
+        <div class="choices">
+          <button type="button" class="choice-btn" data-key="heeftAlimentatie" data-value="nee">Nee</button>
+          <button type="button" class="choice-btn" data-key="heeftAlimentatie" data-value="ja">Ja</button>
+        </div>
+      </div>
+      <div class="subgroup hidden" id="alimentatieDetail">
+        <div class="grid grid-2">
+          <div class="field">
+            <label>Partneralimentatie per maand<span class="field-bonus" data-bonus="1.0">+1%</span></label>
+            <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-key="alimPartner" data-currency="1" placeholder="0" class="has-prefix"></div>
+          </div>
+          <div class="field">
+            <label>Kinderalimentatie per maand<span class="field-bonus" data-bonus="1.0">+1%</span></label>
+            <div class="field-input"><span class="field-prefix">€</span><input type="text" inputmode="numeric" data-key="alimKind" data-currency="1" placeholder="0" class="has-prefix"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BKR CODERING -->
+      <div class="field" style="margin: 24px 0 12px;">
+        <label>Heb je een BKR-codering?<span class="field-bonus" data-bonus="2.0">+2%</span></label>
+      </div>
+      <div class="info-box neutral" style="margin-top: 0; margin-bottom: 14px;">
+        <strong>Wat is BKR?</strong> Het Bureau Krediet Registratie (BKR) registreert alle kredieten in Nederland —
+        persoonlijke leningen, creditcards, roodstand, private lease, telefoonabonnementen. Zodra je een betalingsachterstand
+        hebt van meer dan 2 à 3 maanden, krijgt je dossier een <strong>codering</strong>. Een <em>A-codering</em> betekent een
+        actieve achterstand, een <em>H-codering</em> (herstel) betekent dat je de achterstand hebt ingelopen maar dat
+        het nog wel zichtbaar is. Geldverstrekkers kijken hier scherp naar.
+      </div>
+      <div class="choices">
+        <button type="button" class="choice-btn" data-key="bkrCodering" data-value="nee">Nee, geen codering</button>
+        <button type="button" class="choice-btn" data-key="bkrCodering" data-value="H">Ja, herstelcodering (H)</button>
+        <button type="button" class="choice-btn" data-key="bkrCodering" data-value="A">Ja, actieve codering (A)</button>
+        <button type="button" class="choice-btn" data-key="bkrCodering" data-value="weet-niet">Weet niet</button>
+      </div>
+      <div class="info-box warning hidden" id="info-bkr-active" style="margin-top: 14px;">
+        ⚠ Een actieve A-codering maakt een hypotheekaanvraag vrijwel onmogelijk bij reguliere geldverstrekkers. Overweeg eerst de codering te laten verwijderen.
+      </div>
+
+      <div class="section-footer">
+        <div class="section-footer-hint">Laatste sectie — bijna klaar voor je uitslag</div>
+        <button class="btn-primary" data-next="result" disabled>Toon uitslag →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESULT -->
+  <div class="result hidden" id="result">
+    <!-- Max hypotheek prominent bovenaan -->
+    <div class="result-max">
+      <div class="result-max-label">Jullie maximale hypotheek</div>
+      <div class="result-max-value" id="resultLoan">€ —</div>
+      <div class="result-max-sub">
+        Conform de officiële NIBUD/AFM financieringslastnormen 2026, bij 5% toetsrente (10 jaar rentevast).
+        Aftrek van studieschuld, kredieten, lease, alimentatie en lopende hypotheek. Energielabel-bonus volgens bijlage 2026.
+      </div>
+    </div>
+
+    <div class="result-grid">
+      <div>
+        <div class="result-kicker">Jouw slagingspercentage</div>
+        <div class="result-pct-big">
+          <span class="result-pct-num" id="resultPct">—</span>
+          <span class="result-pct-suffix">%</span>
+        </div>
+        <p class="result-headline" id="resultHeadline"></p>
+      </div>
+      <div>
+        <div class="result-kicker">Wat weegt mee</div>
+        <div class="tags-list" id="resultTags"></div>
+      </div>
+    </div>
+
+    <!-- Aankoop begroting -->
+    <div class="begroting">
+      <div class="begroting-title">Aankoop begroting</div>
+      <div class="begroting-intro">Overzicht van wat jullie nodig hebben en wat er beschikbaar is. Zo zie je in één oogopslag of de financiering rond is.</div>
+      <div class="begroting-grid">
+        <div class="begroting-col">
+          <div class="begroting-col-header">Financieringsbehoefte</div>
+          <div class="begroting-row"><div class="lbl">Koop-/aanneemsom</div><div class="val" id="bgKoopsom">€ 0</div></div>
+          <div class="begroting-row"><div class="lbl">Meerwerk</div><div class="val" id="bgMeerwerk">€ 0</div></div>
+          <div class="begroting-row" id="bgOBRow"><div class="lbl">Overdrachtsbelasting</div><div class="val" id="bgOB">€ 0</div></div>
+          <div class="begroting-row"><div class="lbl">Notaris- en leveringskosten</div><div class="val">€ 1.500</div></div>
+          <div class="begroting-row" id="bgTaxRow"><div class="lbl">Taxatiekosten</div><div class="val" id="bgTax">€ 0</div></div>
+          <div class="begroting-row"><div class="lbl">Advies- en bemiddelingskosten</div><div class="val">€ 3.500</div></div>
+          <div class="begroting-row" id="bgNhgRow"><div class="lbl">NHG borgstellingsprovisie <small>0,4% van hypotheek</small></div><div class="val" id="bgNhg">€ 0</div></div>
+          <div class="begroting-row" id="bgBouwRow"><div class="lbl">Renteverlies tijdens de bouw</div><div class="val" id="bgBouw">€ 0</div></div>
+          <div class="begroting-row"><div class="lbl">Reservering dubbele woonlasten <small>5% van koopsom × 6 mnd</small></div><div class="val" id="bgDubbel">€ 0</div></div>
+          <div class="begroting-row total"><div class="lbl">Totaal benodigd</div><div class="val" id="bgTotaalBehoefte">€ 0</div></div>
+        </div>
+        <div class="begroting-col">
+          <div class="begroting-col-header">Financieringsmiddelen</div>
+          <div class="begroting-row"><div class="lbl">Hypotheek <small id="bgHypSub">indicatief · max toetsing 5%</small></div><div class="val" id="bgHypotheek">€ 0</div></div>
+          <div class="begroting-row"><div class="lbl">Spaargeld</div><div class="val" id="bgSpaargeld">€ 0</div></div>
+          <div class="begroting-row"><div class="lbl">Schenking van familie</div><div class="val" id="bgSchenking">€ 0</div></div>
+          <div class="begroting-row" id="bgOverwaardeRow"><div class="lbl">Overwaarde huidige woning</div><div class="val" id="bgOverwaarde">€ 0</div></div>
+          <div class="begroting-row total"><div class="lbl">Totaal beschikbaar</div><div class="val" id="bgTotaalMiddelen">€ 0</div></div>
+        </div>
+      </div>
+      <div class="begroting-saldo" id="bgSaldoBox">
+        <div class="saldo-label"><strong id="bgSaldoTitel">Saldo</strong><span id="bgSaldoMsg">Vul je gegevens in om de begroting op te bouwen</span></div>
+        <div class="saldo-value" id="bgSaldo">€ 0</div>
+      </div>
+    </div>
+
+    <div class="lead-capture">
+      <div class="lead-capture-title">Bewaar je resultaat en plan een gesprek</div>
+      <div class="lead-form">
+        <input type="email" id="leadEmail" placeholder="je@email.nl">
+        <button class="btn-cta" id="leadSubmit" disabled>Stuur mij het rapport →</button>
+      </div>
+      <label class="lead-consent">
+        <input type="checkbox" id="leadConsent">
+        <span>Ja, Dossiercompleet.nl mag mijn ingevulde gegevens gebruiken om mij persoonlijk te benaderen over hypotheekadvies. Ik ga akkoord met de <u>privacyverklaring</u>.</span>
+      </label>
+      <div class="lead-success" id="leadSuccess">✓ Bedankt! Je rapport is onderweg. Een hypotheekadviseur neemt binnen 1 werkdag contact op.</div>
+    </div>
+
+    <div class="result-disclaimer">
+      Dit is een indicatieve inschatting op basis van jullie antwoorden — geen bindend advies.
+      Voor een definitief oordeel hebben we salarisstroken, werkgeversverklaring en koop-/aanneemovereenkomst nodig.
+    </div>
+  </div>
+
+  <div class="footer-note">Dossiercompleet.nl · indicatief instrument · geen financieel advies</div>
+</main>
+
+<script>
+(function() {
+  'use strict';
+
+  const state = {
+    a1Voornaam:'', a1Tussenvoegsel:'', a1Achternaam:'', a1Geboorte:'', a1Email:'',
+    a1Postcode:'', a1Huisnr:'', a1Toevoeging:'', a1Straat:'', a1Plaats:'', a1Telefoon:'',
+    samen: null,
+    a2Voornaam:'', a2Tussenvoegsel:'', a2Achternaam:'', a2Geboorte:'', a2Email:'',
+    a2Postcode:'', a2Huisnr:'', a2Toevoeging:'', a2Straat:'', a2Plaats:'', a2Telefoon:'',
+    h1Gehad: null, h1Status: null, h1Hoofdsom: '', h1Rest: '', h1Startdatum: '',
+    h2Gehad: null, h2Status: null, h2Hoofdsom: '', h2Rest: '', h2Startdatum: '',
+    koopsom:'', meerwerk:'', energielabel:'', oplevering:'', bouwperiode:'', nhg: null, huidigeWonen:'',
+    brutoA1:'', contractA1:'', werkgeverA1:'', dienstjarenA1:'',
+    brutoA2:'', contractA2:'', werkgeverA2:'', dienstjarenA2:'',
+    pensioen1:'', pensioen2:'',
+    spaargeld:'', schenking:'', overwaarde:'',
+    studie1Heeft: null, studie1Hoofdsom: '', studie1Rest: '',
+    studie2Heeft: null, studie2Hoofdsom: '', studie2Rest: '',
+    heeftLening: null, leningBedrag:'', leningMaand:'',
+    heeftBkr: null, bkrLimit:'',
+    heeftLease: null, leaseMaand:'',
+    heeftAlimentatie: null, alimPartner:'', alimKind:'',
+    bkrCodering: null
+  };
+
+  const milestonesShown = { 40: false, 60: false, 80: false };
+  let prevPct = 22;
+
+  const isFilled = v => v !== '' && v !== null && v !== undefined;
+  const num = v => parseFloat(String(v).replace(/\./g,'').replace(/,/g,'.')) || 0;
+  const fmtNum = n => new Intl.NumberFormat('nl-NL').format(n);
+  const fmtCur = n => '€ ' + new Intl.NumberFormat('nl-NL', { maximumFractionDigits: 0 }).format(Math.round(n));
+
+  function ageFrom(date) {
+    if (!date) return 0;
+    const d = new Date(date);
+    if (isNaN(d)) return 0;
+    const now = new Date();
+    let age = now.getFullYear() - d.getFullYear();
+    const m = now.getMonth() - d.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+    return age;
+  }
+
+  function calcPct() {
+    let s = 22;
+
+    if (isFilled(state.a1Voornaam)) s += 1.2;
+    if (isFilled(state.a1Tussenvoegsel)) s += 0.3;
+    if (isFilled(state.a1Achternaam)) s += 1.2;
+    if (isFilled(state.a1Geboorte)) s += 1.5;
+    if (isFilled(state.a1Email)) s += 1.3;
+    if (isFilled(state.a1Postcode)) s += 1.0;
+    if (isFilled(state.a1Huisnr)) s += 1.0;
+    if (isFilled(state.a1Straat)) s += 0.5;
+    if (isFilled(state.a1Telefoon)) s += 1.2;
+
+    if (isFilled(state.samen)) s += 2;
+
+    if (state.samen === 'ja') {
+      if (isFilled(state.a2Voornaam)) s += 1.0;
+      if (isFilled(state.a2Tussenvoegsel)) s += 0.2;
+      if (isFilled(state.a2Achternaam)) s += 1.0;
+      if (isFilled(state.a2Geboorte)) s += 1.3;
+      if (isFilled(state.a2Email)) s += 1.0;
+      if (isFilled(state.a2Postcode)) s += 0.8;
+      if (isFilled(state.a2Huisnr)) s += 0.8;
+      if (isFilled(state.a2Straat)) s += 0.4;
+      if (isFilled(state.a2Telefoon)) s += 1.0;
+    }
+
+    // Historie A1
+    if (isFilled(state.h1Gehad)) s += 2.5;
+    if (state.h1Gehad === 'ja') {
+      s += 2;
+      if (isFilled(state.h1Status)) s += 1.5;
+      if (state.h1Status === 'lopend') {
+        if (isFilled(state.h1Hoofdsom)) s += 1.5;
+        if (isFilled(state.h1Rest)) s += 1.5;
+        if (isFilled(state.h1Startdatum)) s += 1.5;
+      }
+    }
+
+    if (state.samen === 'ja') {
+      if (isFilled(state.h2Gehad)) s += 2;
+      if (state.h2Gehad === 'ja') {
+        s += 1.5;
+        if (isFilled(state.h2Status)) s += 1.5;
+        if (state.h2Status === 'lopend') {
+          if (isFilled(state.h2Hoofdsom)) s += 1.5;
+          if (isFilled(state.h2Rest)) s += 1.5;
+          if (isFilled(state.h2Startdatum)) s += 1.5;
+        }
+      }
+    }
+
+    // Woning
+    ['koopsom','meerwerk','energielabel','oplevering','huidigeWonen'].forEach(k => { if (isFilled(state[k])) s += 1.7; });
+    if (isFilled(state.nhg)) s += 1.5;
+    if (state.nhg === 'ja' && num(state.koopsom) > 0 && num(state.koopsom) < 470000) s += 2;
+    if (['A++++','A+++','A++','A+'].includes(state.energielabel)) s += 2.5;
+
+    // Inkomen A1
+    ['brutoA1','contractA1','werkgeverA1','dienstjarenA1'].forEach(k => { if (isFilled(state[k])) s += 1.6; });
+    if (state.contractA1 === 'vast') s += 3.5;
+    else if (state.contractA1 === 'tijdelijk-verklaring') s += 1;
+    else if (state.contractA1 === 'tijdelijk') s -= 3;
+    else if (state.contractA1 === 'zzp') s -= 0.5;
+    if (num(state.brutoA1) > 60000) s += 2;
+    if (num(state.dienstjarenA1) >= 3) s += 1.5;
+
+    if (state.samen === 'ja') {
+      ['brutoA2','contractA2','werkgeverA2','dienstjarenA2'].forEach(k => { if (isFilled(state[k])) s += 1.3; });
+      if (state.contractA2 === 'vast') s += 3;
+      else if (state.contractA2 === 'tijdelijk') s -= 2;
+      if (num(state.brutoA2) > 40000) s += 1.5;
+    }
+
+    // Pensioeninkomen (alleen bij 55+)
+    if (ageFrom(state.a1Geboorte) >= 55 && isFilled(state.pensioen1)) s += 1.8;
+    if (state.samen === 'ja' && ageFrom(state.a2Geboorte) >= 55 && isFilled(state.pensioen2)) s += 1.5;
+
+    // Eigen geld
+    ['spaargeld','schenking','overwaarde'].forEach(k => { if (isFilled(state[k])) s += 1.5; });
+    if (num(state.spaargeld) > 20000) s += 2.5;
+    if (num(state.overwaarde) > 50000) s += 3;
+    if (num(state.schenking) > 10000) s += 1.5;
+
+    // Studieschuld A1
+    if (isFilled(state.studie1Heeft)) s += 2;
+    if (state.studie1Heeft === 'nee') s += 2;
+    if (state.studie1Heeft === 'ja') {
+      if (isFilled(state.studie1Hoofdsom)) s += 1.2;
+      if (isFilled(state.studie1Rest)) s += 1.2;
+      const rest = num(state.studie1Rest);
+      if (rest > 30000) s -= 3;
+      else if (rest > 10000) s -= 1.5;
+    }
+
+    // Studieschuld A2
+    if (state.samen === 'ja') {
+      if (isFilled(state.studie2Heeft)) s += 1.8;
+      if (state.studie2Heeft === 'nee') s += 1.5;
+      if (state.studie2Heeft === 'ja') {
+        if (isFilled(state.studie2Hoofdsom)) s += 1.0;
+        if (isFilled(state.studie2Rest)) s += 1.0;
+        const rest = num(state.studie2Rest);
+        if (rest > 30000) s -= 2.5;
+        else if (rest > 10000) s -= 1;
+      }
+    }
+
+    // Leningen / BKR / Lease / Alimentatie
+    if (isFilled(state.heeftLening)) s += 1.8;
+    if (state.heeftLening === 'nee') s += 1.5;
+    if (state.heeftLening === 'ja') {
+      if (isFilled(state.leningBedrag)) s += 1.2;
+      if (isFilled(state.leningMaand)) s += 1.2;
+      if (num(state.leningBedrag) > 10000) s -= 3;
+      else if (num(state.leningBedrag) > 0) s -= 1.5;
+    }
+    if (isFilled(state.heeftBkr)) s += 1.5;
+    if (state.heeftBkr === 'nee') s += 1;
+    if (state.heeftBkr === 'ja') {
+      if (isFilled(state.bkrLimit)) s += 1;
+      if (num(state.bkrLimit) > 5000) s -= 2;
+      else if (num(state.bkrLimit) > 0) s -= 1;
+    }
+    if (isFilled(state.heeftLease)) s += 1.5;
+    if (state.heeftLease === 'nee') s += 1;
+    if (state.heeftLease === 'ja') {
+      if (isFilled(state.leaseMaand)) s += 1;
+      if (num(state.leaseMaand) > 400) s -= 2;
+      else if (num(state.leaseMaand) > 0) s -= 1;
+    }
+    if (isFilled(state.heeftAlimentatie)) s += 1.5;
+    if (state.heeftAlimentatie === 'nee') s += 1;
+    if (state.heeftAlimentatie === 'ja') {
+      if (isFilled(state.alimPartner)) s += 1;
+      if (isFilled(state.alimKind)) s += 1;
+      const total = num(state.alimPartner) + num(state.alimKind);
+      if (total > 500) s -= 3;
+      else if (total > 0) s -= 1;
+    }
+
+    // BKR codering
+    if (isFilled(state.bkrCodering)) s += 2;
+    if (state.bkrCodering === 'nee') s += 3;
+    else if (state.bkrCodering === 'H') s -= 4;
+    else if (state.bkrCodering === 'A') s -= 15;
+
+    // Leeftijd
+    const age1 = ageFrom(state.a1Geboorte);
+    if (age1 > 58) s -= 2;
+
+    return Math.max(20, Math.min(98, Math.round(s)));
+  }
+
+  // === NIBUD/AFM 2026 financieringslastpercentages bij 5% toetsrente ===
+  // Bron: Bijlage financieringslastnormen 2026. Waarden in promille (×1000).
+  const WQ_NIET=[[30000,216],[31000,227],[32000,238],[33000,246],[34000,246],[35000,246],[36000,246],[37000,246],[38000,246],[39000,246],[40000,246],[41000,246],[42000,246],[43000,246],[44000,246],[45000,246],[46000,246],[47000,246],[48000,246],[49000,246],[50000,246],[51000,246],[52000,246],[53000,246],[54000,246],[55000,246],[56000,246],[57000,246],[58000,246],[59000,246],[60000,246],[61000,246],[62000,246],[63000,246],[64000,246],[65000,247],[66000,247],[67000,248],[68000,250],[69000,251],[70000,253],[71000,256],[72000,258],[73000,260],[74000,263],[75000,264],[76000,266],[77000,268],[78000,270],[79000,271],[80000,272],[81000,273],[82000,273],[83000,274],[84000,274],[85000,274],[86000,274],[87000,275],[88000,275],[89000,276],[90000,276],[91000,276],[92000,277],[93000,277],[94000,278],[95000,278],[96000,279],[97000,279],[98000,279],[99000,280],[100000,280],[101000,280],[102000,281],[103000,281],[104000,281],[105000,282],[106000,282],[107000,283],[108000,284],[109000,284],[110000,285],[111000,285],[112000,286],[113000,287],[114000,287],[115000,287],[116000,288],[117000,288],[118000,289],[119000,289],[120000,289],[121000,290],[122000,290],[123000,291],[124000,291],[125000,292]];
+  const WQ_WEL=[[29000,209],[30000,221],[31000,231],[32000,241],[33000,248],[34000,255],[35000,261],[36000,266],[37000,271],[38000,275],[39000,279],[40000,282],[41000,285],[42000,288],[43000,290],[44000,292],[45000,294],[46000,295],[47000,297],[48000,299],[49000,300],[50000,302],[51000,305],[52000,308],[53000,312],[54000,316],[55000,320],[56000,324],[57000,328],[58000,333],[59000,337],[60000,341],[61000,344],[62000,348],[63000,351],[64000,354],[65000,356],[66000,360],[67000,362],[68000,364],[69000,367],[70000,369],[71000,371],[72000,373],[73000,373],[74000,373],[75000,373],[76000,373],[77000,373],[78000,373],[79000,373],[80000,373],[81000,373],[82000,373],[83000,373],[84000,373],[85000,373],[86000,373],[87000,373],[88000,373],[89000,373],[90000,373],[91000,373],[92000,373],[93000,373],[94000,373],[95000,373],[96000,373],[97000,373],[98000,373],[99000,373],[100000,373],[101000,373],[102000,373],[103000,374],[104000,374],[105000,374],[106000,374],[107000,374],[108000,374],[109000,375],[110000,375]];
+
+  function lookupWoonquote(inkomen, isAOW) {
+    const tabel = isAOW ? WQ_WEL : WQ_NIET;
+    if (inkomen < tabel[0][0]) return 0; // onder minimum: geen hypotheek
+    let wq = tabel[0][1];
+    for (const [inc, pct] of tabel) {
+      if (inkomen >= inc) wq = pct;
+      else break;
+    }
+    return wq / 1000; // promille → decimaal
+  }
+
+  function calcMaxLoan() {
+    const pensInkomen = num(state.pensioen1) + num(state.pensioen2);
+    const totalGross = num(state.brutoA1) + num(state.brutoA2) + pensInkomen;
+    if (totalGross < 22000) return 0;
+    // AOW-gerechtigd? Bepaal op basis van geboortedatum (AOW-leeftijd 2026: 67 jaar)
+    const age1 = ageFrom(state.a1Geboorte);
+    const age2 = state.samen === 'ja' ? ageFrom(state.a2Geboorte) : 0;
+    // Voor tweeverdieners: welAOW alleen als beide AOW-gerechtigd zijn
+    const isAOW = state.samen === 'ja' ? (age1 >= 67 && age2 >= 67) : (age1 >= 67);
+    const wq = lookupWoonquote(totalGross, isAOW);
+    if (wq === 0) return 0;
+    let monthly = (totalGross / 12) * wq;
+    // Studieschuld: 0,65% van oorspronkelijke hoofdsom (nieuw stelsel)
+    monthly -= num(state.studie1Hoofdsom) * 0.0065;
+    monthly -= num(state.studie2Hoofdsom) * 0.0065;
+    monthly -= num(state.bkrLimit) * 0.02;
+    monthly -= num(state.leningMaand);
+    monthly -= num(state.leaseMaand);
+    monthly -= num(state.alimPartner);
+    monthly -= num(state.alimKind);
+    // Lopende hypotheek: restant × 0,5% maandlast
+    if (state.h1Status === 'lopend') monthly -= num(state.h1Rest || state.h1Hoofdsom) * 0.005;
+    if (state.h2Status === 'lopend') monthly -= num(state.h2Rest || state.h2Hoofdsom) * 0.005;
+    monthly = Math.max(0, monthly);
+    // Toetsrente 5% (NIBUD-norm bij 10 jaar rentevast)
+    const r = 0.05 / 12;
+    const annuity = (1 - Math.pow(1 + r, -360)) / r;
+    let loan = monthly * annuity;
+    // Energielabel-bonus conform AFM 2026 (aangaan hypotheek)
+    const energyBonus = {
+      'A++++': 40000, // incl. garantie
+      'A+++': 25000,
+      'A++': 20000,
+      'A+': 20000,
+      'A': 10000,
+      'B': 10000
+    }[state.energielabel] || 0;
+    loan += energyBonus;
+    // BKR codering effect
+    if (state.bkrCodering === 'A') loan = 0;
+    else if (state.bkrCodering === 'H') loan *= 0.75;
+    return Math.max(0, loan);
+  }
+
+  function sectionComplete(id) {
+    switch (id) {
+      case 'a1': return ['a1Voornaam','a1Achternaam','a1Geboorte','a1Email','a1Postcode','a1Huisnr','a1Telefoon'].every(k => isFilled(state[k]));
+      case 'partner': return isFilled(state.samen);
+      case 'a2': return state.samen === 'nee' || ['a2Voornaam','a2Achternaam','a2Geboorte','a2Email','a2Postcode','a2Huisnr','a2Telefoon'].every(k => isFilled(state[k]));
+      case 'historie1': {
+        if (!isFilled(state.h1Gehad)) return false;
+        if (state.h1Gehad === 'nee') return true;
+        if (!isFilled(state.h1Status)) return false;
+        if (state.h1Status === 'lopend') return isFilled(state.h1Hoofdsom) && isFilled(state.h1Rest) && isFilled(state.h1Startdatum);
+        return true;
+      }
+      case 'historie2': {
+        if (state.samen === 'nee') return true;
+        if (!isFilled(state.h2Gehad)) return false;
+        if (state.h2Gehad === 'nee') return true;
+        if (!isFilled(state.h2Status)) return false;
+        if (state.h2Status === 'lopend') return isFilled(state.h2Hoofdsom) && isFilled(state.h2Rest) && isFilled(state.h2Startdatum);
+        return true;
+      }
+      case 'woning': return ['koopsom','meerwerk','energielabel','oplevering','huidigeWonen'].every(k => isFilled(state[k])) && isFilled(state.nhg);
+      case 'inkomen1': return ['brutoA1','contractA1','werkgeverA1','dienstjarenA1'].every(k => isFilled(state[k]));
+      case 'inkomen2': return state.samen === 'nee' || ['brutoA2','contractA2','werkgeverA2','dienstjarenA2'].every(k => isFilled(state[k]));
+      case 'geld': return ['spaargeld','schenking'].every(k => isFilled(state[k]));
+      case 'verplichtingen': {
+        if (!isFilled(state.studie1Heeft)) return false;
+        if (state.studie1Heeft === 'ja' && (!isFilled(state.studie1Hoofdsom) || !isFilled(state.studie1Rest))) return false;
+        if (state.samen === 'ja') {
+          if (!isFilled(state.studie2Heeft)) return false;
+          if (state.studie2Heeft === 'ja' && (!isFilled(state.studie2Hoofdsom) || !isFilled(state.studie2Rest))) return false;
+        }
+        if (!isFilled(state.heeftLening) || !isFilled(state.heeftBkr) || !isFilled(state.heeftLease) || !isFilled(state.heeftAlimentatie)) return false;
+        if (state.heeftLening === 'ja' && (!isFilled(state.leningBedrag) || !isFilled(state.leningMaand))) return false;
+        if (state.heeftBkr === 'ja' && !isFilled(state.bkrLimit)) return false;
+        if (state.heeftLease === 'ja' && !isFilled(state.leaseMaand)) return false;
+        if (state.heeftAlimentatie === 'ja' && (!isFilled(state.alimPartner) || !isFilled(state.alimKind))) return false;
+        if (!isFilled(state.bkrCodering)) return false;
+        return true;
+      }
+      default: return false;
+    }
+  }
+
+  function totalSteps() { return state.samen === 'nee' ? 8 : 10; }
+  function stepsDone() {
+    const all = ['a1','partner','a2','historie1','historie2','woning','inkomen1','inkomen2','geld','verplichtingen'];
+    return all.filter(id => {
+      const sec = document.querySelector('[data-id="' + id + '"]');
+      if (!sec || sec.classList.contains('hidden')) return false;
+      return sectionComplete(id);
+    }).length;
+  }
+
+  function updatePct() {
+    const pct = calcPct();
+    const done = stepsDone();
+    const total = totalSteps();
+
+    document.getElementById('pctNum').textContent = pct;
+    document.getElementById('floatPctNum').textContent = pct;
+    document.getElementById('floatPctValue').textContent = pct;
+    document.getElementById('ringFg').style.strokeDashoffset = 163.4 - (163.4 * pct / 100);
+    document.getElementById('floatRingFg').style.strokeDashoffset = 100.5 - (100.5 * pct / 100);
+    document.getElementById('progressBar').style.width = (done / total * 100) + '%';
+    document.getElementById('pctProgress').textContent = done + ' van ' + total + ' stappen';
+
+    const msg = document.getElementById('pctMsg');
+    if (pct >= 85) msg.textContent = 'Uitstekende kans';
+    else if (pct >= 65) msg.textContent = 'Sterke kans';
+    else if (pct >= 40) msg.textContent = 'Op de goede weg';
+    else msg.textContent = 'Vul meer in voor een betere inschatting';
+
+    if (pct > prevPct) {
+      const diff = pct - prevPct;
+      const delta = document.getElementById('pctDelta');
+      const ring = document.getElementById('pctRing');
+      delta.textContent = '+' + diff + '%';
+      delta.classList.remove('show'); void delta.offsetWidth; delta.classList.add('show');
+      ring.classList.remove('bump'); void ring.offsetWidth; ring.classList.add('bump');
+      [40, 60, 80].forEach(m => {
+        if (pct >= m && prevPct < m && !milestonesShown[m]) { milestonesShown[m] = true; showMilestone(m); }
+      });
+    }
+    if (done > 0) document.getElementById('floatBadge').classList.add('visible');
+
+    // Maxbar onder in beeld zodra er inkomen is ingevuld
+    const loan = calcMaxLoan();
+    const maxbar = document.getElementById('maxbar');
+    const maxbarValue = document.getElementById('maxbarValue');
+    if (loan > 0) {
+      maxbar.classList.add('visible');
+      maxbarValue.textContent = fmtCur(loan);
+    } else {
+      maxbar.classList.remove('visible');
+    }
+
+    prevPct = pct;
+  }
+
+  function showMilestone(pct) {
+    const messages = {
+      40: { icon: '🏁', text: '<strong>40% bereikt!</strong> Je hebt de basis op orde.' },
+      60: { icon: '🚀', text: '<strong>60% bereikt!</strong> Op deze koers ziet het er goed uit.' },
+      80: { icon: '⭐', text: '<strong>80% bereikt!</strong> Een sterk profiel — nog een paar vragen.' }
+    };
+    const m = messages[pct];
+    const openSec = document.querySelector('.section.open .section-body');
+    if (!openSec) return;
+    const el = document.createElement('div');
+    el.className = 'milestone';
+    el.innerHTML = '<div class="milestone-icon">' + m.icon + '</div><div class="milestone-text">' + m.text + '</div>';
+    openSec.insertBefore(el, openSec.querySelector('.section-footer'));
+    setTimeout(() => { el.style.transition = 'opacity 0.6s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 600); }, 4000);
+  }
+
+  function updateFieldBonuses() {
+    document.querySelectorAll('.field').forEach(field => {
+      const input = field.querySelector('[data-key]');
+      const bonus = field.querySelector('.field-bonus');
+      if (!input || !bonus || bonus.classList.contains('optional')) return;
+      const filled = isFilled(state[input.dataset.key]);
+      bonus.classList.toggle('filled', filled);
+      if (filled) bonus.textContent = '✓';
+      else if (bonus.dataset.bonus) bonus.textContent = '+' + bonus.dataset.bonus + '%';
+    });
+    document.querySelectorAll('.field').forEach(field => {
+      const label = field.querySelector('.field-bonus');
+      if (!label || label.classList.contains('optional')) return;
+      const choiceBtn = field.querySelector('.choice-btn[data-key]');
+      if (!choiceBtn) return;
+      const key = choiceBtn.dataset.key;
+      const filled = isFilled(state[key]);
+      label.classList.toggle('filled', filled);
+      if (filled) label.textContent = '✓';
+      else if (label.dataset.bonus) label.textContent = '+' + label.dataset.bonus + '%';
+    });
+  }
+
+  function updateSections() {
+    document.querySelectorAll('.section').forEach(sec => {
+      const id = sec.dataset.id;
+      const done = sectionComplete(id);
+      sec.classList.toggle('done', done);
+      const btn = sec.querySelector('.btn-primary');
+      if (btn) btn.disabled = !done;
+    });
+
+    const showA2 = state.samen === 'ja';
+    document.querySelector('[data-id="a2"]').classList.toggle('hidden', !showA2);
+    document.querySelector('[data-id="historie2"]').classList.toggle('hidden', !showA2);
+    document.querySelector('[data-id="inkomen2"]').classList.toggle('hidden', !showA2);
+    document.getElementById('studie2Question').classList.toggle('hidden', !showA2);
+
+    // Info boxes
+    document.getElementById('info-nhg-warning').classList.toggle('hidden', !(num(state.koopsom) > 470000 && state.nhg === 'ja'));
+    document.getElementById('info-bkr-active').classList.toggle('hidden', state.bkrCodering !== 'A');
+
+    // Pensioen velden (55+)
+    document.getElementById('pensioen1-field').classList.toggle('hidden', ageFrom(state.a1Geboorte) < 55);
+    document.getElementById('pensioen2-field').classList.toggle('hidden', !(state.samen === 'ja' && ageFrom(state.a2Geboorte) >= 55));
+
+    // Kosten koper hertrekken
+    updateKK();
+
+    // Overwaarde zichtbaar als iemand een nog lopende hypotheek heeft
+    const heeftLopend = (state.h1Gehad === 'ja' && state.h1Status === 'lopend') ||
+                       (state.samen === 'ja' && state.h2Gehad === 'ja' && state.h2Status === 'lopend');
+    document.getElementById('overwaarde-field').classList.toggle('hidden', !heeftLopend);
+
+    // Subgroups
+    document.getElementById('h1Detail').classList.toggle('hidden', state.h1Gehad !== 'ja');
+    document.getElementById('h1LopendDetail').classList.toggle('hidden', state.h1Status !== 'lopend');
+    document.getElementById('h2Detail').classList.toggle('hidden', state.h2Gehad !== 'ja');
+    document.getElementById('h2LopendDetail').classList.toggle('hidden', state.h2Status !== 'lopend');
+    document.getElementById('studie1Detail').classList.toggle('hidden', state.studie1Heeft !== 'ja');
+    document.getElementById('studie2Detail').classList.toggle('hidden', !(state.samen === 'ja' && state.studie2Heeft === 'ja'));
+    document.getElementById('leningDetail').classList.toggle('hidden', state.heeftLening !== 'ja');
+    document.getElementById('bkrDetail').classList.toggle('hidden', state.heeftBkr !== 'ja');
+    document.getElementById('leaseDetail').classList.toggle('hidden', state.heeftLease !== 'ja');
+    document.getElementById('alimentatieDetail').classList.toggle('hidden', state.heeftAlimentatie !== 'ja');
+
+    // Subtitles
+    const first1 = state.a1Voornaam.trim();
+    const first2 = state.a2Voornaam.trim();
+    document.getElementById('sub-historie1').textContent = first1 ? `Heeft ${first1} ooit eerder een hypotheek gehad?` : 'Heb je ooit eerder een hypotheek gehad?';
+    document.getElementById('sub-historie2').textContent = first2 ? `En ${first2}?` : 'En aanvrager 2?';
+    document.getElementById('sub-inkomen1').textContent = first1 ? `Financiële positie van ${first1}` : 'Financiële positie van jou';
+    document.getElementById('sub-inkomen2').textContent = first2 ? `Financiële positie van ${first2}` : 'Financiële positie aanvrager 2';
+    const labelStudie1 = document.getElementById('label-studie1');
+    if (labelStudie1) {
+      const bonus = labelStudie1.querySelector('.field-bonus');
+      labelStudie1.innerHTML = (first1 ? `Heeft ${first1} een studieschuld?` : 'Heb je een studieschuld?');
+      if (bonus) labelStudie1.appendChild(bonus);
+    }
+    const labelStudie2 = document.getElementById('label-studie2');
+    if (labelStudie2) {
+      const bonus = labelStudie2.querySelector('.field-bonus');
+      labelStudie2.innerHTML = (first2 ? `Heeft ${first2} een studieschuld?` : 'Heeft aanvrager 2 een studieschuld?');
+      if (bonus) labelStudie2.appendChild(bonus);
+    }
+
+    // Copy buttons
+    const copyAddr = document.getElementById('copyAddressBtn');
+    const a1Full = isFilled(state.a1Postcode) && isFilled(state.a1Huisnr);
+    copyAddr.disabled = !a1Full;
+    copyAddr.textContent = a1Full ? '↩ Zelfde adres als aanvrager 1' : '↩ Vul eerst adres aanvrager 1 in';
+
+    const copyHist = document.getElementById('copyHistorieBtn');
+    const h1Full = sectionComplete('historie1');
+    copyHist.disabled = !h1Full;
+    copyHist.textContent = h1Full ? '↩ Zelfde historie als aanvrager 1' : '↩ Vul eerst historie aanvrager 1 in';
+
+    // All done?
+    const required = ['a1','partner','a2','historie1','historie2','woning','inkomen1','inkomen2','geld','verplichtingen'];
+    const allDone = required.every(id => sectionComplete(id));
+    document.getElementById('result').classList.toggle('hidden', !allDone);
+    if (allDone) updateResult();
+
+    updateFieldBonuses();
+  }
+
+  function updateBegroting() {
+    const koopsom = num(state.koopsom);
+    const meerwerk = num(state.meerwerk);
+    const totaalKoop = koopsom + meerwerk;
+
+    // Bestaande bouw toggle nemen we over uit de KK-calculator
+    const bestaandeBox = document.querySelector('[data-kk="bestaande"]');
+    const bestaande = bestaandeBox ? bestaandeBox.checked : false;
+
+    const ob = bestaande ? totaalKoop * 0.02 : 0;
+    const tax = bestaande ? 800 : 0;
+    const notaris = 1500;
+    const advies = 3500;
+
+    // Beschikbare eigen middelen
+    const spaargeld = num(state.spaargeld);
+    const schenking = num(state.schenking);
+    const overwaarde = num(state.overwaarde);
+    const eigenMiddelen = spaargeld + schenking + overwaarde;
+
+    // Benodigde hypotheek = koopsom + meerwerk - eigen middelen die aan woning toegerekend zijn
+    // Maar eigen middelen worden eerst voor KK gebruikt. Voor NHG-berekening pakken we de feitelijk benodigde hypotheek.
+    const maxLoan = calcMaxLoan();
+    // Hypotheek = het bedrag dat nodig is om de woning te kopen, beperkt door max leencapaciteit en marktwaarde
+    const hypNodigVoorWoning = Math.max(0, totaalKoop - Math.max(0, eigenMiddelen - (ob + notaris + tax + advies)));
+    const hypotheek = Math.min(maxLoan, totaalKoop, hypNodigVoorWoning > 0 ? hypNodigVoorWoning : totaalKoop);
+
+    // Vervolgberekeningen met de effectieve hypotheek
+    const nhgPremie = (state.nhg === 'ja') ? (hypotheek * 0.004) : 0;
+    const maanden = Math.min(36, Math.max(0, parseInt(state.bouwperiode) || 0));
+    const bouwRente = (!bestaande && maanden > 0 && hypotheek > 0) ? (hypotheek * 0.05 * (maanden / 12) * 0.5) : 0;
+    const dubbel = koopsom > 0 ? (koopsom * 0.05 * 0.5) : 0;
+
+    const totaalBehoefte = totaalKoop + ob + notaris + tax + advies + nhgPremie + bouwRente + dubbel;
+    const totaalMiddelen = hypotheek + eigenMiddelen;
+    const saldo = totaalMiddelen - totaalBehoefte;
+
+    // DOM updates
+    document.getElementById('bgKoopsom').textContent = fmtCur(koopsom);
+    document.getElementById('bgMeerwerk').textContent = fmtCur(meerwerk);
+    document.getElementById('bgOB').textContent = fmtCur(ob);
+    document.getElementById('bgOBRow').style.display = ob > 0 ? 'flex' : 'none';
+    document.getElementById('bgTax').textContent = fmtCur(tax);
+    document.getElementById('bgTaxRow').style.display = tax > 0 ? 'flex' : 'none';
+    document.getElementById('bgNhg').textContent = fmtCur(nhgPremie);
+    document.getElementById('bgNhgRow').style.display = nhgPremie > 0 ? 'flex' : 'none';
+    document.getElementById('bgBouw').textContent = fmtCur(bouwRente);
+    document.getElementById('bgBouwRow').style.display = bouwRente > 0 ? 'flex' : 'none';
+    document.getElementById('bgDubbel').textContent = fmtCur(dubbel);
+    document.getElementById('bgTotaalBehoefte').textContent = fmtCur(totaalBehoefte);
+
+    document.getElementById('bgHypotheek').textContent = fmtCur(hypotheek);
+    document.getElementById('bgSpaargeld').textContent = fmtCur(spaargeld);
+    document.getElementById('bgSchenking').textContent = fmtCur(schenking);
+    document.getElementById('bgOverwaarde').textContent = fmtCur(overwaarde);
+    document.getElementById('bgOverwaardeRow').style.display = overwaarde > 0 ? 'flex' : 'none';
+    document.getElementById('bgTotaalMiddelen').textContent = fmtCur(totaalMiddelen);
+
+    // Saldo box
+    const saldoBox = document.getElementById('bgSaldoBox');
+    const saldoValue = document.getElementById('bgSaldo');
+    const saldoTitel = document.getElementById('bgSaldoTitel');
+    const saldoMsg = document.getElementById('bgSaldoMsg');
+
+    if (totaalBehoefte === 0) {
+      saldoBox.className = 'begroting-saldo';
+      saldoValue.textContent = '€ 0';
+      saldoTitel.textContent = 'Saldo';
+      saldoMsg.textContent = 'Vul je gegevens in om de begroting op te bouwen';
+      return;
+    }
+
+    if (saldo >= 0) {
+      saldoBox.className = 'begroting-saldo positive';
+      saldoTitel.textContent = '✓ Financiering is rond';
+      saldoMsg.textContent = 'De beschikbare middelen dekken de totale aankoopkosten. Het overschot kun je bewaren als buffer.';
+      saldoValue.textContent = '+ ' + fmtCur(Math.abs(saldo));
+    } else {
+      saldoBox.className = 'begroting-saldo negative';
+      saldoTitel.textContent = '⚠ Tekort in financiering';
+      if (hypotheek < totaalKoop - eigenMiddelen) {
+        saldoMsg.textContent = 'De hypotheekruimte is te klein voor deze koopsom — overweeg een goedkopere woning of extra eigen inleg.';
+      } else {
+        saldoMsg.textContent = 'Er is nog onvoldoende eigen geld om de kosten koper te dekken.';
+      }
+      saldoValue.textContent = '− ' + fmtCur(Math.abs(saldo));
+    }
+  }
+
+  function updateResult() {
+    const pct = calcPct();
+    document.getElementById('resultPct').textContent = pct;
+    const loan = calcMaxLoan();
+    document.getElementById('resultLoan').textContent = loan > 0 ? fmtCur(loan) : '€ 0';
+
+    let headline;
+    if (loan === 0 && state.bkrCodering === 'A') headline = 'Een actieve BKR-codering blokkeert de aanvraag. Eerst de codering laten verwijderen.';
+    else if (pct >= 85) headline = 'Uitstekend. De kans op een passende nieuwbouwhypotheek is zeer hoog.';
+    else if (pct >= 65) headline = 'Sterke kans. Met wat finetuning wordt dit een succesvolle aanvraag.';
+    else if (pct >= 45) headline = 'Redelijk. Laat een adviseur meekijken om je kans te vergroten.';
+    else headline = 'De basis staat — maar de acceptatie wordt spannend.';
+    document.getElementById('resultHeadline').textContent = headline;
+
+    const tags = [];
+    const first1 = state.a1Voornaam.trim() || 'A1';
+    const first2 = state.a2Voornaam.trim() || 'A2';
+    if (state.contractA1 === 'vast') tags.push({ pos: true, t: first1 + ' vast contract' });
+    if (state.contractA2 === 'vast') tags.push({ pos: true, t: first2 + ' vast contract' });
+    if (num(state.brutoA1) + num(state.brutoA2) > 80000) tags.push({ pos: true, t: 'Sterk gezamenlijk inkomen' });
+    if (['A++++','A+++','A++','A+'].includes(state.energielabel)) tags.push({ pos: true, t: 'Energielabel ' + state.energielabel });
+    if (state.h1Gehad === 'ja') tags.push({ pos: true, t: first1 + ' ervaring met hypotheek' });
+    if (state.h2Gehad === 'ja') tags.push({ pos: true, t: first2 + ' ervaring met hypotheek' });
+    if (num(state.overwaarde) > 50000) tags.push({ pos: true, t: 'Substantiële overwaarde' });
+    if (state.nhg === 'ja' && num(state.koopsom) < 470000) tags.push({ pos: true, t: 'Binnen NHG-grens' });
+    if (num(state.spaargeld) > 20000) tags.push({ pos: true, t: 'Goede spaarpositie' });
+    if (state.bkrCodering === 'nee') tags.push({ pos: true, t: 'Geen BKR-codering' });
+    if (state.studie1Heeft === 'nee' && state.studie2Heeft !== 'ja') tags.push({ pos: true, t: 'Geen studieschuld' });
+
+    if (state.contractA1 === 'tijdelijk') tags.push({ pos: false, t: 'Tijdelijk contract ' + first1 });
+    if (num(state.studie1Rest) > 30000 || num(state.studie2Rest) > 30000) tags.push({ pos: false, t: 'Forse studieschuld' });
+    if (state.bkrCodering === 'A') tags.push({ pos: false, t: 'Actieve BKR-codering' });
+    else if (state.bkrCodering === 'H') tags.push({ pos: false, t: 'Herstel BKR-codering' });
+    if (num(state.leningBedrag) > 10000) tags.push({ pos: false, t: 'Forse lening' });
+    if (num(state.leaseMaand) > 400) tags.push({ pos: false, t: 'Hoge leaselast' });
+    if (num(state.alimPartner) + num(state.alimKind) > 500) tags.push({ pos: false, t: 'Alimentatieverplichting' });
+    if (ageFrom(state.a1Geboorte) > 58) tags.push({ pos: false, t: 'Leeftijd nabij pensioen' });
+
+    const html = tags.map(t =>
+      '<span class="tag ' + (t.pos ? 'positive' : 'negative') + '">' +
+      '<span>' + (t.pos ? '+' : '−') + '</span><span>' + t.t + '</span></span>'
+    ).join('');
+    document.getElementById('resultTags').innerHTML = html || '<span style="opacity:0.6;font-size:13px">Nog geen specifieke signalen</span>';
+
+    updateBegroting();
+  }
+
+  // === PDOK adres lookup ===
+  async function lookupAdres(who) {
+    const pc = state[who + 'Postcode'].replace(/\s+/g, '').toUpperCase();
+    const hn = state[who + 'Huisnr'].trim();
+    const result = document.getElementById(who + 'AdresResult');
+    if (!pc || !hn) {
+      result.classList.remove('show', 'loading', 'error');
+      state[who + 'Straat'] = '';
+      state[who + 'Plaats'] = '';
+      return;
+    }
+    if (!/^\d{4}[A-Z]{2}$/.test(pc)) return;
+
+    result.className = 'adres-result loading show';
+    result.innerHTML = '<span class="spinner"></span><span>Adres opzoeken…</span>';
+
+    try {
+      const q = `${pc} ${hn}`;
+      const url = `https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=${encodeURIComponent(q)}&fq=type:adres&rows=1`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.response && data.response.numFound > 0) {
+        const d = data.response.docs[0];
+        state[who + 'Straat'] = d.straatnaam || '';
+        state[who + 'Plaats'] = d.woonplaatsnaam || '';
+        result.className = 'adres-result show';
+        result.innerHTML = `<span>✓</span><strong>${d.straatnaam} ${hn}${state[who + 'Toevoeging'] ? ' ' + state[who + 'Toevoeging'] : ''}, ${pc.slice(0,4)} ${pc.slice(4)} ${d.woonplaatsnaam}</strong>`;
+      } else {
+        state[who + 'Straat'] = '';
+        state[who + 'Plaats'] = '';
+        result.className = 'adres-result error show';
+        result.innerHTML = '<span>⚠</span><span>Adres niet gevonden — controleer postcode en huisnummer</span>';
+      }
+    } catch (e) {
+      result.className = 'adres-result error show';
+      result.innerHTML = '<span>⚠</span><span>Kon adres niet ophalen — controleer je verbinding</span>';
+    }
+    updatePct();
+    updateSections();
+  }
+
+  let lookupTimer = {};
+  function triggerLookup(who) {
+    clearTimeout(lookupTimer[who]);
+    lookupTimer[who] = setTimeout(() => lookupAdres(who), 500);
+  }
+
+  function copyAddressFromA1() {
+    ['Postcode','Huisnr','Toevoeging','Straat','Plaats'].forEach(k => {
+      state['a2' + k] = state['a1' + k];
+      const input = document.querySelector('input[data-key="a2' + k + '"]');
+      if (input) input.value = state['a1' + k];
+    });
+    const result = document.getElementById('a2AdresResult');
+    if (state.a1Straat && state.a1Plaats) {
+      const pc = state.a1Postcode.replace(/\s+/g, '').toUpperCase();
+      result.className = 'adres-result show';
+      result.innerHTML = `<span>✓</span><strong>${state.a1Straat} ${state.a1Huisnr}${state.a1Toevoeging ? ' ' + state.a1Toevoeging : ''}, ${pc.slice(0,4)} ${pc.slice(4)} ${state.a1Plaats}</strong>`;
+    }
+    updatePct();
+    updateSections();
+  }
+
+  function copyHistorieFromA1() {
+    ['Gehad','Status','Hoofdsom','Rest','Startdatum'].forEach(k => {
+      state['h2' + k] = state['h1' + k];
+      const input = document.querySelector('input[data-key="h2' + k + '"]');
+      if (input) {
+        if (input.dataset.currency && state['h1' + k]) {
+          input.value = fmtNum(parseInt(state['h1' + k]));
+        } else {
+          input.value = state['h1' + k] || '';
+        }
+      }
+    });
+    document.querySelectorAll('[data-key^="h2"]').forEach(btn => {
+      if (!btn.dataset.key || !btn.dataset.value) return;
+      btn.classList.toggle('active', state[btn.dataset.key] === btn.dataset.value);
+    });
+    updatePct();
+    updateSections();
+  }
+
+  function openSection(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.toggle('open', s.dataset.id === id));
+    const sec = document.querySelector('[data-id="' + id + '"]');
+    if (sec && !sec.classList.contains('hidden')) {
+      setTimeout(() => sec.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
+  }
+
+  function nextFrom(current) {
+    const flow = ['a1','partner','a2','historie1','historie2','woning','inkomen1','inkomen2','geld','verplichtingen'];
+    const idx = flow.indexOf(current);
+    if (idx === -1 || idx === flow.length - 1) {
+      document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    let nextId = flow[idx + 1];
+    while (document.querySelector('[data-id="' + nextId + '"]').classList.contains('hidden')) {
+      const i = flow.indexOf(nextId);
+      if (i === flow.length - 1) { document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+      nextId = flow[i + 1];
+    }
+    document.querySelector('[data-id="' + current + '"]').classList.remove('open');
+    setTimeout(() => openSection(nextId), 150);
+  }
+
+  function jumpToCurrent() {
+    let openSec = document.querySelector('.section.open');
+    if (!openSec) {
+      const flow = ['a1','partner','a2','historie1','historie2','woning','inkomen1','inkomen2','geld','verplichtingen'];
+      for (const id of flow) {
+        const sec = document.querySelector('[data-id="' + id + '"]');
+        if (sec.classList.contains('hidden')) continue;
+        if (!sectionComplete(id)) { openSection(id); return; }
+      }
+      document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    openSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // === Kosten koper real-time berekening ===
+  function updateKK() {
+    const kkTotalEl = document.getElementById('kkTotal');
+    if (!kkTotalEl) return;
+    const koopsom = num(state.koopsom) + num(state.meerwerk);
+    const bestaandeBox = document.querySelector('[data-kk="bestaande"]');
+    const bestaande = bestaandeBox ? bestaandeBox.checked : false;
+    const ob = bestaande ? koopsom * 0.02 : 0;
+    const tax = bestaande ? 800 : 0;
+    const notaris = 1500;
+    const advies = 3500;
+    const nhgPremie = (state.nhg === 'ja') ? (koopsom * 0.004) : 0;
+    // Renteverlies tijdens bouw: alleen nieuwbouw, hypotheek × 5% × bouwperiode × gemiddelde bezetting 50%
+    const maanden = Math.min(36, Math.max(0, parseInt(state.bouwperiode) || 0));
+    const hypBedrag = koopsom; // aanname: hypotheek ≈ koopsom bij NHG; anders mag het een ruwe schatting zijn
+    const bouwRente = (!bestaande && maanden > 0) ? (hypBedrag * 0.05 * (maanden / 12) * 0.5) : 0;
+    // Reservering dubbele woonlasten: 5% van koopsom voor 6 maanden = 2.5% van koopsom
+    const dubbel = koopsom > 0 ? (koopsom * 0.05 * 0.5) : 0;
+
+    const totaal = ob + notaris + tax + advies + nhgPremie + bouwRente + dubbel;
+
+    document.getElementById('kkOB').textContent = fmtCur(ob);
+    document.getElementById('kkTax').textContent = fmtCur(tax);
+    document.getElementById('kkNhg').textContent = fmtCur(nhgPremie);
+    document.getElementById('kkBouw').textContent = fmtCur(bouwRente);
+    document.getElementById('kkDubbel').textContent = fmtCur(dubbel);
+    document.getElementById('kkTotal').textContent = fmtCur(totaal);
+    document.getElementById('kkNhgRow').style.display = (state.nhg === 'ja') ? 'flex' : 'none';
+    document.getElementById('kkBouwRow').style.display = (!bestaande && maanden > 0) ? 'flex' : 'none';
+
+    const eigen = num(state.spaargeld) + num(state.schenking) + num(state.overwaarde);
+    const noteEl = document.getElementById('kkNote');
+    if (noteEl && eigen > 0 && totaal > 0) {
+      if (eigen >= totaal) {
+        noteEl.innerHTML = `✓ Jullie eigen middelen (${fmtCur(eigen)}) dekken de kosten koper ruim. Het overschot kun je gebruiken voor inrichting of extra aflossing.`;
+      } else {
+        noteEl.innerHTML = `⚠ Jullie eigen middelen (${fmtCur(eigen)}) dekken de kosten koper nog niet volledig — tekort van ${fmtCur(totaal - eigen)}.`;
+      }
+    } else if (noteEl) {
+      noteEl.innerHTML = `Dit bedrag heb je nodig uit eigen middelen (spaargeld, schenking of overwaarde) — een hypotheek dekt namelijk alleen de woning zelf.`;
+    }
+  }
+
+  // === Inkomens-calculator per persoon ===
+  function wireIncomeCalc(prefix, targetKey, resultElId) {
+    const calc = { Maand: 0, Bonus: 0, Vakantie: true, Dertien: false };
+    function update() {
+      const base = calc.Maand * 12;
+      const vak = calc.Vakantie ? base * 0.08 : 0;
+      const der = calc.Dertien ? calc.Maand : 0;
+      const total = base + vak + der + calc.Bonus;
+      document.getElementById(resultElId).textContent = fmtCur(total);
+      return total;
+    }
+    ['Maand', 'Bonus'].forEach(k => {
+      const el = document.querySelector(`[data-calc="${prefix}${k}"]`);
+      if (!el) return;
+      el.addEventListener('input', e => {
+        const raw = e.target.value.replace(/\./g, '');
+        if (raw === '' || /^\d+$/.test(raw)) {
+          calc[k] = parseInt(raw) || 0;
+          e.target.value = raw ? fmtNum(calc[k]) : '';
+        } else {
+          e.target.value = calc[k] ? fmtNum(calc[k]) : '';
+        }
+        update();
+      });
+    });
+    ['Vakantie', 'Dertien'].forEach(k => {
+      const el = document.querySelector(`[data-calc="${prefix}${k}"]`);
+      if (!el) return;
+      el.addEventListener('change', e => { calc[k] = e.target.checked; update(); });
+    });
+    const applyBtn = document.querySelector(`[data-apply="${targetKey}"]`);
+    if (applyBtn) {
+      applyBtn.addEventListener('click', () => {
+        const total = Math.round(update());
+        state[targetKey] = String(total);
+        const input = document.querySelector(`input[data-key="${targetKey}"]`);
+        if (input) input.value = fmtNum(total);
+        updatePct();
+        updateSections();
+      });
+    }
+  }
+
+  function init() {
+    // Currency inputs
+    document.querySelectorAll('input[data-currency]').forEach(input => {
+      input.addEventListener('input', e => {
+        const raw = e.target.value.replace(/\./g, '');
+        if (raw === '' || /^\d+$/.test(raw)) {
+          state[e.target.dataset.key] = raw;
+          e.target.value = raw ? fmtNum(parseInt(raw)) : '';
+        } else {
+          e.target.value = state[e.target.dataset.key] ? fmtNum(parseInt(state[e.target.dataset.key])) : '';
+        }
+        updatePct();
+        updateSections();
+      });
+    });
+
+    // Postcode & huisnr
+    ['a1', 'a2'].forEach(who => {
+      const pc = document.querySelector('input[data-key="' + who + 'Postcode"]');
+      if (pc) {
+        pc.addEventListener('input', e => {
+          let v = e.target.value.toUpperCase().replace(/\s+/g, '');
+          if (v.length > 4) v = v.slice(0,4) + ' ' + v.slice(4,6);
+          e.target.value = v;
+          state[who + 'Postcode'] = v;
+          updatePct();
+          updateSections();
+          triggerLookup(who);
+        });
+      }
+      const hn = document.querySelector('input[data-key="' + who + 'Huisnr"]');
+      if (hn) {
+        hn.addEventListener('input', e => {
+          state[who + 'Huisnr'] = e.target.value;
+          updatePct();
+          updateSections();
+          triggerLookup(who);
+        });
+      }
+      const tv = document.querySelector('input[data-key="' + who + 'Toevoeging"]');
+      if (tv) {
+        tv.addEventListener('input', e => {
+          state[who + 'Toevoeging'] = e.target.value;
+          updatePct();
+          updateSections();
+        });
+      }
+    });
+
+    // Regular inputs
+    document.querySelectorAll('input[data-key]:not([data-currency]), select[data-key]').forEach(el => {
+      const key = el.dataset.key;
+      if (['a1Postcode','a2Postcode','a1Huisnr','a2Huisnr','a1Toevoeging','a2Toevoeging'].includes(key)) return;
+      const handler = () => {
+        state[key] = el.value;
+        updatePct();
+        updateSections();
+      };
+      el.addEventListener('input', handler);
+      el.addEventListener('change', handler);
+    });
+
+    // Choice buttons
+    document.querySelectorAll('.choice-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.key;
+        const value = btn.dataset.value;
+        state[key] = value;
+        const group = btn.parentElement;
+        group.querySelectorAll('.choice-btn').forEach(b => {
+          if (b.dataset.key === key) b.classList.toggle('active', b === btn);
+        });
+        updatePct();
+        updateSections();
+      });
+    });
+
+    // Section heads
+    document.querySelectorAll('.section-head').forEach(head => {
+      head.addEventListener('click', () => {
+        const sec = head.closest('.section');
+        if (sec.classList.contains('open')) sec.classList.remove('open');
+        else openSection(sec.dataset.id);
+      });
+    });
+
+    // Next buttons
+    document.querySelectorAll('.btn-primary[data-next]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        nextFrom(btn.closest('.section').dataset.id);
+      });
+    });
+
+    document.getElementById('floatBadge').addEventListener('click', jumpToCurrent);
+    document.getElementById('copyAddressBtn').addEventListener('click', copyAddressFromA1);
+    document.getElementById('copyHistorieBtn').addEventListener('click', copyHistorieFromA1);
+
+    // Inkomens-calculators voor A1 en A2
+    wireIncomeCalc('m1', 'brutoA1', 'm1Result');
+    wireIncomeCalc('m2', 'brutoA2', 'm2Result');
+
+    // Kosten koper — bestaande bouw toggle
+    const kkBestaande = document.querySelector('[data-kk="bestaande"]');
+    if (kkBestaande) kkBestaande.addEventListener('change', updateKK);
+
+    // Lead capture
+    const leadEmail = document.getElementById('leadEmail');
+    const leadConsent = document.getElementById('leadConsent');
+    const leadSubmit = document.getElementById('leadSubmit');
+    const leadSuccess = document.getElementById('leadSuccess');
+    function checkLead() {
+      const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(leadEmail.value);
+      leadSubmit.disabled = !(valid && leadConsent.checked);
+    }
+    leadEmail.addEventListener('input', checkLead);
+    leadConsent.addEventListener('change', checkLead);
+    leadSubmit.addEventListener('click', () => {
+      leadSuccess.classList.add('show');
+      leadSubmit.textContent = '✓ Verstuurd';
+      leadSubmit.disabled = true;
+      // Voor productie: fetch('https://jouw-endpoint.nl/leads', { method:'POST', body: JSON.stringify({...state, email: leadEmail.value}) });
+    });
+
+    updatePct();
+    updateSections();
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
+
+</body>
+</html>
